@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.22"
+__version__ = "1.1.23"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
@@ -1942,7 +1942,7 @@ def ridge(X, y, **kwargs):
         alpha_max= maximum value of range of alphas to evaluate (default=1e3)
         n_alpha= number of log-spaced alphas to evaluate (default=100)
         vif_target= VIF target for use with RidgeVIF (default=1.0)
-        verbose= 'on' (default) or 'off'
+        verbose= 'on' (default), 'off', or 1=show stats, coef, and residuals plot
 
     Standardization is generally recommended for Ridge regression.
 
@@ -1952,8 +1952,6 @@ def ridge(X, y, **kwargs):
                 sklearn.linear_model Ridge or RidgeCV
                 of the final best models using the following four methods: 
                 - RidgeCV: sklearn RidgeCV 
-                - RidgeAIC: sklearn Ridge using minimum AIC to find best alpha
-                - RidgeBIC: sklearn Ridge using minimum BIC to find best alpha
                 - RidgeVIF: sklearn Ridge using target VIF to find best alpha
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
@@ -2020,10 +2018,10 @@ def ridge(X, y, **kwargs):
     data = {**defaults, **kwargs}
 
     # check for input errors
-    ctrl = detect_dummy_variables(X)
-    if ctrl:
-        print('Check X: Ridge can not handle dummies. Try using lasso if X has dummies.','\n')
-        sys.exit()
+    has_dummies = detect_dummy_variables(X)
+    # if ctrl:
+    #     print('Check X: Ridge can not handle dummies. Try using lasso if X has dummies.','\n')
+    #     sys.exit()
     ctrl = isinstance(X, pd.DataFrame)
     if not ctrl:
         print('Check X: it needs to be pandas dataframes!','\n')
@@ -2064,7 +2062,7 @@ def ridge(X, y, **kwargs):
     # Suppress warnings
     warnings.filterwarnings('ignore')
     print('Fitting Ridge regression models, please wait ...')
-    if data['verbose'] == 'on':
+    if data['verbose'] == 'on' or data['verbose'] == 1:
         print("\n")
 
     # Set start time for calculating run time
@@ -2107,33 +2105,25 @@ def ridge(X, y, **kwargs):
         ridge.fit(X, y)
         coefs.append(ridge.coef_)
 
-    # Calculate pen_factors for input to vif_ridge function
-    # sklearn ridge scales input alpha during execution by dividing by n_samples to calculate penalty factor
-    # statsmodels ridge regression does not scale input alpha by n_samples during execution
-    # https://stackoverflow.com/questions/72260808/mismatch-between-statsmodels-and-sklearn-ridge-regression
-    # Also see discussion at this link for further explanation of why pen_factors = alphas / n_samples using sklearn:
-    # https://github.com/statsmodels/statsmodels/issues/1669
-    # uncomment one of the following two lines depending on if you are using sklearn or statsmodels
-    pen_factors = alphas / n_samples   # use this line if using sklearn Ridge
-    # pen_factors = alphas     # use this for pen_factors if using statsmodels OLS fit_regularized L1_wt=0
-
-    alpha_vs_coef = pd.DataFrame({
-        'alpha': alphas,
-        'coef': coefs
-        }).set_index("alpha")
-    alpha_vs_penalty = pd.DataFrame({
-        'alpha': alphas,
-        'pen_factors':pen_factors
-        }).set_index("alpha")
-    vifs = pd.DataFrame(vif_ridge(X, pen_factors))
-    vifs.columns = X.columns
-    vifs_ = vifs.copy()     # vifs_ = vifs before inserting alphas
-    vifs.insert(0, 'alpha', alphas)
-    vifs.set_index('alpha',inplace=True)
+    if ~has_dummies:
+        pen_factors = alphas / n_samples   # use this line if using sklearn Ridge
+        alpha_vs_coef = pd.DataFrame({
+            'alpha': alphas,
+            'coef': coefs
+            }).set_index("alpha")
+        alpha_vs_penalty = pd.DataFrame({
+            'alpha': alphas,
+            'pen_factors':pen_factors
+            }).set_index("alpha")
+        vifs = pd.DataFrame(vif_ridge(X, pen_factors))
+        vifs.columns = X.columns
+        vifs_ = vifs.copy()     # vifs_ = vifs before inserting alphas
+        vifs.insert(0, 'alpha', alphas)
+        vifs.set_index('alpha',inplace=True)
+        model_outputs['alpha_vs_vif'] = vifs
         
     model_outputs['alpha_vs_coef'] = alpha_vs_coef
     model_outputs['alpha_vs_penalty'] = alpha_vs_penalty
-    model_outputs['alpha_vs_vif'] = vifs
     
     # RidgeCV default using MSE
     model_cv = RidgeCV(alphas=alphas, store_cv_results=True).fit(X, y)
@@ -2143,75 +2133,18 @@ def ridge(X, y, **kwargs):
     model_cv_mse_each_fold = model_cv.cv_results_  # Shape: (n_samples, n_alphas)
     model_cv_mse_mean = np.mean(model_cv.cv_results_, axis=0)
 
-    # RidgeAIC/BIC - Ridge with manual AIC and BIC scoring
-    log_likelihood = lambda n, rss: -0.5 * n * (np.log(2 * np.pi) + np.log(rss/n) + 1)
-    aic = lambda n, rss, k: -2 * log_likelihood(n,rss) + 2 * k
-    bic = lambda n, rss, k: -2 * log_likelihood(n,rss) + k * np.log(n)
-    # RidgeAIC = model_aic
-    best_aic = float('inf')
-    best_alpha_aic = None    
-    aic_ = np.full(len(alphas), np.nan)
-    for i,alpha in enumerate(alphas):
-        # ridge = RidgeCV(alphas=[alpha], store_cv_results=True)
-        # print(float(alpha)
-        ridge = Ridge(alpha=alpha)
-        ridge.fit(X, y)        
-        # Calculate residual sum of squares (RSS)
-        y_pred = ridge.predict(X)
-        rss = np.sum((y - y_pred) ** 2)        
-        # Number of parameters (coefficients + intercept)
-        k = X.shape[1] + 1  # Features + intercept        
-        # Calculate and track the best AIC
-        aic_[i] = aic(n=X.shape[0], rss=rss, k=k)        
-        if aic_[i] < best_aic:
-            best_aic = aic_[i]
-            best_alpha_aic = alpha
-    model_aic = Ridge(alpha=best_alpha_aic).fit(X, y)
-    model_objects['RidgeAIC'] = model_aic  
-    model_outputs['best_alpha_aic'] = best_alpha_aic
-    # RidgeBIC - model_bic
-    best_bic = float('inf')
-    best_alpha_bic = None    
-    bic_ = np.full(len(alphas), np.nan)
-    for i,alpha in enumerate(alphas):
-        # ridge = RidgeCV(alphas=[alpha], store_cv_results=True)
-        ridge = Ridge(alpha=alpha)
-        ridge.fit(X, y)        
-        # Calculate residual sum of squares (RSS)
-        y_pred = ridge.predict(X)
-        rss = np.sum((y - y_pred) ** 2)        
-        # Number of parameters (coefficients + intercept)
-        k = X.shape[1] + 1  # Features + intercept        
-        # Calculate and track the best BIC
-        bic_[i] = bic(n=X.shape[0], rss=rss, k=k)        
-        if bic_[i] < best_bic:
-            best_bic = bic_[i]
-            best_alpha_bic = alpha
-    model_bic = Ridge(alpha=best_alpha_bic).fit(X, y)
-    model_objects['RidgeBIC'] = model_bic  
-    model_outputs['best_alpha_bic'] = best_alpha_bic
-
-    # RidgeVIF - Ridge with VIF target
-    vif_target = data['vif_target']
-    rmse_vif_res = np.sqrt(np.sum((vif_target-vifs_)**2,1))
-    idx = (np.abs(rmse_vif_res)).argmin()
-    best_alpha_vif = alphas[idx]
-    model_vif = Ridge(alpha=best_alpha_vif).fit(X, y)
-    model_objects['RidgeVIF'] = model_vif  
-    model_outputs['best_alpha_vif'] = best_alpha_vif
-    
-    # results of alphas to minimize AIC and BIC
-    alpha_vs_AIC_BIC = pd.DataFrame(
-        {
-            "alpha": alphas,
-            "AIC": aic_,
-            "BIC": bic_,
-        }
-        ).set_index("alpha")
-    model_outputs['alpha_vs_AIC_BIC'] = alpha_vs_AIC_BIC
+    if ~has_dummies:
+        # RidgeVIF - Ridge with VIF target
+        vif_target = data['vif_target']
+        rmse_vif_res = np.sqrt(np.sum((vif_target-vifs_)**2,1))
+        idx = (np.abs(rmse_vif_res)).argmin()
+        best_alpha_vif = alphas[idx]
+        model_vif = Ridge(alpha=best_alpha_vif).fit(X, y)
+        model_objects['RidgeVIF'] = model_vif  
+        model_outputs['best_alpha_vif'] = best_alpha_vif
     
     # Plot the results of ridge coef as function of alpha
-    if data['verbose'] == 'on':
+    if data['verbose'] == 'on' and data['verbose'] != 1:
         ax = plt.gca()
         ax.plot(alphas, coefs)
         ax.set_xscale('log')
@@ -2223,33 +2156,34 @@ def ridge(X, y, **kwargs):
         plt.savefig("Ridge_alpha_vs_coef.png", dpi=300)
 
     # Plot the VIF of coefficients as function of alpha
-    if data['verbose'] == 'on':
-        # model = model_vif
-        plt.figure()
-        ax = plt.gca()
-        ax.plot(alphas, vifs)
-        ax.set_xscale('log')
-        ax.set_yscale('log')
-        # plt.yscale("log")
-        plt.axvline(best_alpha_vif, linestyle="--", color="black")        
-        ax.text(best_alpha_vif, np.percentile(vifs.values.flatten(),5), 
-                "alpha at VIF target {:.1f} ={:.3e}".format(vif_target,best_alpha_vif), 
-                rotation=90, va='bottom', ha='right')
-        plt.axis('tight')
-        plt.xlabel(r"$\alpha$")
-        plt.legend(X.columns)
-        plt.ylabel('VIF')
-        plt.title(r'VIF of coefficients as a function of $\alpha$');
-        ax2 = ax.twinx()
-        ax2.plot(alphas, rmse_vif_res, 'r--', label='target')
-        ax2.set_ylabel('RMS difference between VIF and target {:.1f}'.format(vif_target), color='r')
-        ax2.tick_params(axis='y', labelcolor='r')
-        ax2.set_yscale('log')
-        ax2.yaxis.set_major_formatter(FormatStrFormatter('%.0f'))
-        plt.savefig("Ridge_alpha_vs_vif.png", dpi=300)
+    if ~has_dummies:
+        if data['verbose'] == 'on' and data['verbose'] != 1:
+            # model = model_vif
+            plt.figure()
+            ax = plt.gca()
+            ax.plot(alphas, vifs)
+            ax.set_xscale('log')
+            ax.set_yscale('log')
+            # plt.yscale("log")
+            plt.axvline(best_alpha_vif, linestyle="--", color="black")        
+            ax.text(best_alpha_vif, np.percentile(vifs.values.flatten(),5), 
+                    "alpha at VIF target {:.1f} ={:.3e}".format(vif_target,best_alpha_vif), 
+                    rotation=90, va='bottom', ha='right')
+            plt.axis('tight')
+            plt.xlabel(r"$\alpha$")
+            plt.legend(X.columns)
+            plt.ylabel('VIF')
+            plt.title(r'VIF of coefficients as a function of $\alpha$');
+            ax2 = ax.twinx()
+            ax2.plot(alphas, rmse_vif_res, 'r--', label='target')
+            ax2.set_ylabel('RMS difference between VIF and target {:.1f}'.format(vif_target), color='r')
+            ax2.tick_params(axis='y', labelcolor='r')
+            ax2.set_yscale('log')
+            ax2.yaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+            plt.savefig("Ridge_alpha_vs_vif.png", dpi=300)
 
     # RidgeCV Plot the MSE vs alpha for each fold
-    if data['verbose'] == 'on':
+    if data['verbose'] == 'on' and data['verbose'] != 1:
         model = model_cv
         plt.figure()
         plt.semilogx(alphas, model_cv_mse_each_fold.T, linestyle=":")
@@ -2273,63 +2207,24 @@ def ridge(X, y, **kwargs):
         )
         plt.savefig("RidgeCV_alpha_vs_MSE.png", dpi=300)
     
-    # RidgeAIC/BIC Plot of alphas to minimize AIC and BIC
-    if data['verbose'] == 'on':
-        results = alpha_vs_AIC_BIC
-        ax = results.plot()
-        ax.vlines(
-            best_alpha_aic,
-            results["AIC"].min(),
-            results["AIC"].max(),
-            label="AIC selected alpha={:.3e}".format(best_alpha_aic),
-            linestyles="--",
-            color="tab:blue",
-        )
-        ax.vlines(
-            best_alpha_bic,
-            results["BIC"].min(),
-            results["BIC"].max(),
-            label="BIC selected alpha={:.3e}".format(best_alpha_bic),
-            linestyle="--",
-            color="tab:orange",
-        )
-        ax.set_xlabel(r"$\alpha$")
-        ax.set_ylabel("Information Criterion (AIC or BIC)")
-        ax.set_xscale("log")
-        ax.legend()
-        _ = ax.set_title(
-            "RidgeAIC/BIC - Information Criterion for model selection"
-        )
-        plt.savefig("Ridge_alpha_vs_AIC_BIC.png", dpi=300)
-
     # Calculate regression stats
-    stats_cv = stats_given_model(X, y, model_cv)
-    stats_aic = stats_given_model(X, y, model_aic)
-    stats_bic = stats_given_model(X, y, model_bic)
-    stats_vif = stats_given_model(X, y, model_vif)
+    stats_cv = stats_given_model(X, y, model_cv)    
+    if ~has_dummies:
+        stats_vif = stats_given_model(X, y, model_vif)
 
     # residual plot for training error
-    if data['verbose'] == 'on':
+    if data['verbose'] == 'on' or data['verbose'] == 1:
         # predicted vs actual
         y_pred_cv = stats_cv['y_pred']
-        y_pred_aic = stats_aic['y_pred']
-        y_pred_bic = stats_bic['y_pred']
-        y_pred_vif = stats_vif['y_pred']
         res_cv = stats_cv['residuals']
-        res_aic = stats_aic['residuals']
-        res_bic = stats_bic['residuals']
-        res_vif = stats_vif['residuals']
         rmse_cv = stats_cv['RMSE']
-        rmse_aic = stats_aic['RMSE']
-        rmse_bic = stats_bic['RMSE']
-        rmse_vif = stats_vif['RMSE']
         plt.figure()
         plt.scatter(y_pred_cv, y, s=40, label=('RidgeCV (RMSE={:.2f})'.format(rmse_cv)))
-        plt.scatter(y_pred_aic, y, s=20, label=('RidgeAIC (RMSE={:.2f})'.format(rmse_aic)))
-        plt.scatter(y_pred_bic, y, s=10, label=('RidgeBIC (RMSE={:.2f})'.format(rmse_bic)))
-        plt.scatter(y_pred_vif, y, s=5, label=('RidgeVIF (RMSE={:.2f})'.format(rmse_vif)))
-
-        # plt.hlines(y=0, xmin=min(y), xmax=max(y), color='k')
+        if ~has_dummies:
+            y_pred_vif = stats_vif['y_pred']
+            res_vif = stats_vif['residuals']
+            rmse_vif = stats_vif['RMSE']
+            plt.scatter(y_pred_vif, y, s=5, label=('RidgeVIF (RMSE={:.2f})'.format(rmse_vif)))
         y45 = np.linspace(min(y), max(y), 100)  # Adjust range as needed
         x45 = y45  # 45-degree line: y = x
         plt.plot(x45, y45, color="k")
@@ -2341,110 +2236,21 @@ def ridge(X, y, **kwargs):
         plt.savefig("Ridge_predicted_vs_actual.png", dpi=300)
         # predicted vs residual
         y_pred_cv = stats_cv['y_pred']
-        y_pred_aic = stats_aic['y_pred']
-        y_pred_bic = stats_bic['y_pred']
-        y_pred_vif = stats_vif['y_pred']
         res_cv = stats_cv['residuals']
-        res_aic = stats_aic['residuals']
-        res_bic = stats_bic['residuals']
-        res_vif = stats_vif['residuals']
         rmse_cv = stats_cv['RMSE']
-        rmse_aic = stats_aic['RMSE']
-        rmse_bic = stats_bic['RMSE']
-        rmse_vif = stats_vif['RMSE']
         plt.figure()
         plt.scatter(y_pred_cv, (res_cv), s=40, label=('RidgeCV (RMSE={:.2f})'.format(rmse_cv)))
-        plt.scatter(y_pred_aic, (res_aic), s=20, label=('RidgeAIC (RMSE={:.2f})'.format(rmse_aic)))
-        plt.scatter(y_pred_bic, (res_bic), s=10, label=('RidgeBIC (RMSE={:.2f})'.format(rmse_bic)))
-        plt.scatter(y_pred_vif, (res_vif), s=5, label=('RidgeVIF (RMSE={:.2f})'.format(rmse_vif)))
+        if ~has_dummies:
+            y_pred_vif = stats_vif['y_pred']
+            res_vif = stats_vif['residuals']
+            rmse_vif = stats_vif['RMSE']
+            plt.scatter(y_pred_vif, (res_vif), s=5, label=('RidgeVIF (RMSE={:.2f})'.format(rmse_vif)))
         plt.hlines(y=0, xmin=min(y), xmax=max(y), color='k')
         plt.title("Residuals vs. Predicted")
         plt.legend();
         plt.xlabel('y_pred')
         plt.ylabel('residual')
         plt.savefig("Ridge_predicted_vs_residuals.png", dpi=300)
-        '''
-        # RidgeCV
-        fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
-        PredictionErrorDisplay.from_predictions(
-            y,
-            y_pred=stats_cv['y_pred'],
-            kind="actual_vs_predicted",
-            ax=axs[0]
-        )
-        axs[0].set_title("Actual vs. Predicted")
-        PredictionErrorDisplay.from_predictions(
-            y,
-            y_pred=stats_cv['y_pred'],
-            kind="residual_vs_predicted",
-            ax=axs[1]
-        )
-        axs[1].set_title("Residuals vs. Predicted")
-        fig.suptitle(
-            f"RidgeCV predictions compared with actual values and residuals (RMSE={stats_cv['RMSE']:.3f})")
-        plt.tight_layout()
-        plt.savefig("RidgeCV_predictions.png", dpi=300)
-        # RidgeAIC
-        fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
-        PredictionErrorDisplay.from_predictions(
-            y,
-            y_pred=stats_aic['y_pred'],
-            kind="actual_vs_predicted",
-            ax=axs[0]
-        )
-        axs[0].set_title("Actual vs. Predicted")
-        PredictionErrorDisplay.from_predictions(
-            y,
-            y_pred=stats_aic['y_pred'],
-            kind="residual_vs_predicted",
-            ax=axs[1]
-        )
-        axs[1].set_title("Residuals vs. Predicted")
-        fig.suptitle(
-            f"RidgeAIC predictions compared with actual values and residuals (RMSE={stats_aic['RMSE']:.3f})")
-        plt.tight_layout()
-        plt.savefig("RidgeAIC_predictions.png", dpi=300)
-        # RidgeBIC
-        fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
-        PredictionErrorDisplay.from_predictions(
-            y,
-            y_pred=stats_bic['y_pred'],
-            kind="actual_vs_predicted",
-            ax=axs[0]
-        )
-        axs[0].set_title("Actual vs. Predicted")
-        PredictionErrorDisplay.from_predictions(
-            y,
-            y_pred=stats_bic['y_pred'],
-            kind="residual_vs_predicted",
-            ax=axs[1]
-        )
-        axs[1].set_title("Residuals vs. Predicted")
-        fig.suptitle(
-            f"RidgeBIC predictions compared with actual values and residuals (RMSE={stats_bic['RMSE']:.3f})")
-        plt.tight_layout()
-        plt.savefig("RidgeBIC_predictions.png", dpi=300)
-        # RidgeVIF
-        fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
-        PredictionErrorDisplay.from_predictions(
-            y,
-            y_pred=stats_vif['y_pred'],
-            kind="actual_vs_predicted",
-            ax=axs[0]
-        )
-        axs[0].set_title("Actual vs. Predicted")
-        PredictionErrorDisplay.from_predictions(
-            y,
-            y_pred=stats_vif['y_pred'],
-            kind="residual_vs_predicted",
-            ax=axs[1]
-        )
-        axs[1].set_title("Residuals vs. Predicted")
-        fig.suptitle(
-            f"RidgeVIF predictions compared with actual values and residuals (RMSE={stats_vif['RMSE']:.3f})")
-        plt.tight_layout()
-        plt.savefig("RidgeVIF_predictions.png", dpi=300)
-        '''
 
     # Make the model_outputs dataframes
     list1_name = ['alpha','r-squared','adjusted r-squared',
@@ -2461,92 +2267,97 @@ def ridge(X, y, **kwargs):
     list2_cv = list(stats_cv['popt']['param'])
     list3_cv = list1_cv + list2_cv
 
-    list1_aic = [best_alpha_aic, stats_aic["rsquared"], stats_aic["adj_rsquared"], 
-                       stats_aic["n_samples"], stats_aic["df"], stats_aic["dfn"], 
-                       stats_aic["Fstat"], stats_aic["pvalue"], stats_aic["RMSE"], 
-                       stats_aic["log_likelihood"],stats_aic["aic"],stats_aic["bic"]]
-    list2_aic = list(stats_aic['popt']['param'])
-    list3_aic = list1_aic + list2_aic
+    if ~has_dummies:
+        list1_vif = [best_alpha_vif, stats_vif["rsquared"], stats_vif["adj_rsquared"], 
+                           stats_vif["n_samples"], stats_vif["df"], stats_vif["dfn"], 
+                           stats_vif["Fstat"], stats_vif["pvalue"], stats_vif["RMSE"], 
+                           stats_vif["log_likelihood"],stats_vif["aic"],stats_vif["bic"]]
+        list2_vif = list(stats_vif['popt']['param'])
+        list3_vif = list1_vif + list2_vif
+        y_pred = pd.DataFrame(
+            {
+                "RidgeCV": stats_cv['y_pred'],
+                "RidgeVIF": stats_vif['y_pred']
+            }
+            )
+        y_pred.index = y.index
+        model_outputs['y_pred'] = y_pred
+        residuals = pd.DataFrame(
+            {
+                "RidgeCV": stats_cv['residuals'],
+                "RidgeVIF": stats_vif['residuals']
+            }
+            )
+        residuals.index = y.index
+        model_outputs['residuals'] = residuals
+        popt_table = pd.DataFrame(
+            {
+                "Feature": list2_name,
+                "RidgeCV": list2_cv,
+                "RidgeVIF": list2_vif
+            }
+            )
+        popt_table.set_index('Feature',inplace=True)
+        model_outputs['popt_table'] = popt_table
+        stats = pd.DataFrame(
+            {
+                "Statistic": list1_name,
+                "RidgeCV": list1_cv,
+                "RidgeVIF": list1_vif
+            }
+            )
+        stats.set_index('Statistic',inplace=True)
+        model_outputs['stats'] = stats
+    else:
+        y_pred = pd.DataFrame(
+            {
+                "RidgeCV": stats_cv['y_pred'],
+            }
+            )
+        y_pred.index = y.index
+        model_outputs['y_pred'] = y_pred
+        residuals = pd.DataFrame(
+            {
+                "RidgeCV": stats_cv['residuals'],
+            }
+            )
+        residuals.index = y.index
+        model_outputs['residuals'] = residuals
+        popt_table = pd.DataFrame(
+            {
+                "Feature": list2_name,
+                "RidgeCV": list2_cv,
+            }
+            )
+        popt_table.set_index('Feature',inplace=True)
+        model_outputs['popt_table'] = popt_table
+        stats = pd.DataFrame(
+            {
+                "Statistic": list1_name,
+                "RidgeCV": list1_cv,
+            }
+            )
+        stats.set_index('Statistic',inplace=True)
+        model_outputs['stats'] = stats
 
-    list1_bic = [best_alpha_bic, stats_bic["rsquared"], stats_bic["adj_rsquared"], 
-                       stats_bic["n_samples"], stats_bic["df"], stats_bic["dfn"], 
-                       stats_bic["Fstat"], stats_bic["pvalue"], stats_bic["RMSE"], 
-                       stats_bic["log_likelihood"],stats_bic["aic"],stats_bic["bic"]]
-    list2_bic = list(stats_bic['popt']['param'])
-    list3_bic = list1_bic + list2_bic
-
-    list1_vif = [best_alpha_vif, stats_vif["rsquared"], stats_vif["adj_rsquared"], 
-                       stats_vif["n_samples"], stats_vif["df"], stats_vif["dfn"], 
-                       stats_vif["Fstat"], stats_vif["pvalue"], stats_vif["RMSE"], 
-                       stats_vif["log_likelihood"],stats_vif["aic"],stats_vif["bic"]]
-    list2_vif = list(stats_vif['popt']['param'])
-    list3_vif = list1_vif + list2_vif
-
-    y_pred = pd.DataFrame(
-        {
-            "RidgeCV": stats_cv['y_pred'],
-            "RidgeAIC": stats_aic['y_pred'],
-            "RidgeBIC": stats_bic['y_pred'],
-            "RidgeVIF": stats_vif['y_pred']
-        }
-        )
-    y_pred.index = y.index
-    model_outputs['y_pred'] = y_pred
-
-    residuals = pd.DataFrame(
-        {
-            "RidgeCV": stats_cv['residuals'],
-            "RidgeAIC": stats_aic['residuals'],
-            "RidgeBIC": stats_bic['residuals'],
-            "RidgeVIF": stats_vif['residuals']
-        }
-        )
-    residuals.index = y.index
-    model_outputs['residuals'] = residuals
-
-    # Table of all popt incl coef=0
-    popt_table = pd.DataFrame(
-        {
-            "Feature": list2_name,
-            "RidgeCV": list2_cv,
-            "RidgeAIC": list2_aic,
-            "RidgeBIC": list2_bic,
-            "RidgeVIF": list2_vif
-        }
-        )
-    popt_table.set_index('Feature',inplace=True)
-    model_outputs['popt_table'] = popt_table
-
-    stats = pd.DataFrame(
-        {
-            "Statistic": list1_name,
-            "RidgeCV": list1_cv,
-            "RidgeAIC": list1_aic,
-            "RidgeBIC": list1_bic,
-            "RidgeVIF": list1_vif
-        }
-        )
-    stats.set_index('Statistic',inplace=True)
-    model_outputs['stats'] = stats
-
-    # Calculate VIF of X at Ridge regression alpha values
-    alphas = [model_outputs['stats']['RidgeCV']['alpha'],
-                  model_outputs['stats']['RidgeAIC']['alpha'],
-                  model_outputs['stats']['RidgeBIC']['alpha'], 
-                  model_outputs['stats']['RidgeVIF']['alpha'],] 
-    df = model_outputs['alpha_vs_penalty'].copy()
-    df.reset_index(drop=False, inplace=True)
-    pf_cv = np.array(df[df['alpha'] == alphas[0]]['pen_factors'])
-    pf_aic = np.array(df[df['alpha'] == alphas[1]]['pen_factors'])
-    pf_bic = np.array(df[df['alpha'] == alphas[2]]['pen_factors'])
-    pf_vif = np.array(df[df['alpha'] == alphas[3]]['pen_factors'])
-    pen_factors = [pf_cv, pf_aic, pf_bic, pf_vif]
-    vif_calc = vif_ridge(X,pen_factors)
+    if ~has_dummies:
+        # Calculate VIF of X at Ridge regression alpha values
+        alphas = [model_outputs['stats']['RidgeCV']['alpha'],
+                      model_outputs['stats']['RidgeVIF']['alpha'],] 
+        df = model_outputs['alpha_vs_penalty'].copy()
+        df.reset_index(drop=False, inplace=True)
+        pf_cv = np.array(df[df['alpha'] == alphas[0]]['pen_factors'])
+        pf_vif = np.array(df[df['alpha'] == alphas[1]]['pen_factors'])
+        pen_factors = [pf_cv, pf_vif]
+        vif_calc = vif_ridge(X,pen_factors)
     
     # Calculate the covariance matrix of the features
     popt_all = {}
-    pcov_all = {}
-    vif_all = {}
+    
+    if ~has_dummies:
+        pcov_all = {}
+        vif_all = {}
+    
     col = X.columns
 
     # RidgeCV
@@ -2557,111 +2368,69 @@ def ridge(X, y, **kwargs):
         if model_.coef_[i]==0:
             X_ = X_.drop(col[i], axis = 1)
             popt = popt.drop(index=i+1)
-    X__ = sm.add_constant(X_)    # Add a constant for the intercept
-    pcov = pd.DataFrame(np.cov(X__, rowvar=False), index=X__.columns)
-    pcov.columns = X__.columns
-    popt.set_index('Feature',inplace=True)
-    popt_all['RidgeCV'] = popt
-    pcov_all['RidgeCV'] = pcov
-    vif = pd.DataFrame()
-    vif['Feature'] = X__.columns
-    vif["VIF"] = np.insert(vif_calc[0], 0, np.nan) 
-    #        
-    vif.set_index('Feature',inplace=True)
-    vif_all["RidgeCV"] = vif
+    if ~has_dummies:
+        X__ = sm.add_constant(X_)    # Add a constant for the intercept
+        pcov = pd.DataFrame(np.cov(X__, rowvar=False), index=X__.columns)
+        pcov.columns = X__.columns
+        popt.set_index('Feature',inplace=True)
+        popt_all['RidgeCV'] = popt
+        pcov_all['RidgeCV'] = pcov
+        vif = pd.DataFrame()
+        vif['Feature'] = X__.columns
+        vif["VIF"] = np.insert(vif_calc[0], 0, np.nan) 
+        #        
+        vif.set_index('Feature',inplace=True)
+        vif_all["RidgeCV"] = vif
 
-    # RidgeAIC
-    model_ = model_objects['RidgeAIC']
-    popt = stats_aic['popt'].copy()
-    X_ = X.copy()
-    for i in range(len(model_.coef_)):   # set X col to zero if coef = 0
-        if model_.coef_[i]==0:
-            X_ = X_.drop(col[i], axis = 1)
-            popt = popt.drop(index=i+1)
-    X__ = sm.add_constant(X_)    # Add a constant for the intercept
-    pcov = pd.DataFrame(np.cov(X__, rowvar=False), index=X__.columns)
-    pcov.columns = X__.columns
-    popt.set_index('Feature',inplace=True)
-    popt_all['RidgeAIC'] = popt
-    pcov_all['RidgeAIC'] = pcov
-    vif = pd.DataFrame()
-    vif['Feature'] = X__.columns
-    vif["VIF"] = np.insert(vif_calc[1], 0, np.nan) 
-    #        
-    vif.set_index('Feature',inplace=True)
-    vif_all["RidgeAIC"] = vif
+    if ~has_dummies:
+        # RidgeVIF
+        model_ = model_objects['RidgeVIF']
+        popt = stats_vif['popt'].copy()
+        X_ = X.copy()
+        for i in range(len(model_.coef_)):   # set X col to zero if coef = 0
+            if model_.coef_[i]==0:
+                X_ = X_.drop(col[i], axis = 1)
+                popt = popt.drop(index=i+1)
+        X__ = sm.add_constant(X_)    # Add a constant for the intercept
+        pcov = pd.DataFrame(np.cov(X__, rowvar=False), index=X__.columns)
+        pcov.columns = X__.columns
+        popt.set_index('Feature',inplace=True)
+        popt_all['RidgeVIF'] = popt
+        pcov_all['RidgeVIF'] = pcov
+        vif = pd.DataFrame()
+        vif['Feature'] = X__.columns
 
-    # RidgeBIC
-    model_ = model_objects['RidgeBIC']
-    popt = stats_bic['popt'].copy()
-    X_ = X.copy()
-    for i in range(len(model_.coef_)):   # set X col to zero if coef = 0
-        if model_.coef_[i]==0:
-            X_ = X_.drop(col[i], axis = 1)
-            popt = popt.drop(index=i+1)
-    X__ = sm.add_constant(X_)    # Add a constant for the intercept
-    pcov = pd.DataFrame(np.cov(X__, rowvar=False), index=X__.columns)
-    pcov.columns = X__.columns
-    popt.set_index('Feature',inplace=True)
-    popt_all['RidgeBIC'] = popt
-    pcov_all['RidgeBIC'] = pcov
-    vif = pd.DataFrame()
-    vif['Feature'] = X__.columns
-    vif["VIF"] = np.insert(vif_calc[2], 0, np.nan) 
-    #        
-    vif.set_index('Feature',inplace=True)
-    vif_all["RidgeBIC"] = vif
+        # vif["VIF"] = np.insert(vif_calc[3], 0, np.nan) 
+        vif["VIF"] = np.insert(vif_calc[1], 0, np.nan) 
 
-    # RidgeVIF
-    model_ = model_objects['RidgeVIF']
-    popt = stats_vif['popt'].copy()
-    X_ = X.copy()
-    for i in range(len(model_.coef_)):   # set X col to zero if coef = 0
-        if model_.coef_[i]==0:
-            X_ = X_.drop(col[i], axis = 1)
-            popt = popt.drop(index=i+1)
-    X__ = sm.add_constant(X_)    # Add a constant for the intercept
-    pcov = pd.DataFrame(np.cov(X__, rowvar=False), index=X__.columns)
-    pcov.columns = X__.columns
-    popt.set_index('Feature',inplace=True)
-    popt_all['RidgeVIF'] = popt
-    pcov_all['RidgeVIF'] = pcov
-    vif = pd.DataFrame()
-    vif['Feature'] = X__.columns
-    vif["VIF"] = np.insert(vif_calc[3], 0, np.nan) 
-    #        
-    vif.set_index('Feature',inplace=True)
-    vif_all["RidgeVIF"] = vif
+        #        
+        vif.set_index('Feature',inplace=True)
+        vif_all["RidgeVIF"] = vif
     
     # save vif and pcov in model_outputs
     model_outputs['popt'] = popt_all
-    model_outputs['pcov'] = pcov_all
-    model_outputs['vif'] = vif_all
 
-    # Make big VIF table of all models in one table
-    # get row indicdes of non-zero coef values in each model col
-    idx = popt_table.apply(lambda col: col[col != 0].index.tolist())
-    # initialize vif_table same as popt_table but with nan values
-    vif_table = pd.DataFrame(np.nan, index=popt_table.index, columns=popt_table.columns)
-    # Put in the VIF values in each model column
-    # RidgeCV
-    vif = model_outputs['vif']['RidgeCV']['VIF'].values
-    vif_table.loc[idx['RidgeCV'], "RidgeCV"] = vif
-    # RidgeAIC
-    vif = model_outputs['vif']['RidgeAIC']['VIF'].values
-    vif_table.loc[idx['RidgeAIC'], "RidgeAIC"] = vif
-    # RidgeBIC
-    vif = model_outputs['vif']['RidgeBIC']['VIF'].values
-    vif_table.loc[idx['RidgeBIC'], "RidgeBIC"] = vif
-    # RidgeVIF
-    vif = model_outputs['vif']['RidgeVIF']['VIF'].values
-    vif_table.loc[idx['RidgeVIF'], "RidgeVIF"] = vif
-    # drop const row from VIF table and save in outputs
-    vif_table = vif_table.drop(index=['const'])
-    model_outputs['vif_table'] = vif_table
+    if ~has_dummies:
+        model_outputs['pcov'] = pcov_all
+        model_outputs['vif'] = vif_all
+        # Make big VIF table of all models in one table
+        # get row indicdes of non-zero coef values in each model col
+        idx = popt_table.apply(lambda col: col[col != 0].index.tolist())
+        # initialize vif_table same as popt_table but with nan values
+        vif_table = pd.DataFrame(np.nan, index=popt_table.index, columns=popt_table.columns)
+        # Put in the VIF values in each model column
+        # RidgeCV
+        vif = model_outputs['vif']['RidgeCV']['VIF'].values
+        vif_table.loc[idx['RidgeCV'], "RidgeCV"] = vif
+        # RidgeVIF
+        vif = model_outputs['vif']['RidgeVIF']['VIF'].values
+        vif_table.loc[idx['RidgeVIF'], "RidgeVIF"] = vif
+        # drop const row from VIF table and save in outputs
+        vif_table = vif_table.drop(index=['const'])
+        model_outputs['vif_table'] = vif_table
 
     # Print model_outputs
-    if data['verbose'] == 'on':
+    if data['verbose'] == 'on' or data['verbose'] == 1:
         print("Ridge regression statistics of best models in model_outputs['stats']:")
         print("\n")
         print(model_outputs['stats'].to_markdown(index=True))
@@ -2670,11 +2439,12 @@ def ridge(X, y, **kwargs):
         print("\n")
         print(model_outputs['popt_table'].to_markdown(index=True))
         print("\n")
-        print("Variance Inflation Factors model_outputs['vif']:")
-        print("Note: VIF>5 indicates excessive collinearity")
-        print("\n")
-        print(model_outputs['vif_table'].to_markdown(index=True))
-        print("\n")
+        if ~has_dummies:
+            print("Variance Inflation Factors model_outputs['vif']:")
+            print("Note: VIF>5 indicates excessive collinearity")
+            print("\n")
+            print(model_outputs['vif_table'].to_markdown(index=True))
+            print("\n")
 
     # Print the run time
     fit_time = time.time() - start_time
