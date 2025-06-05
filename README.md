@@ -160,7 +160,7 @@ if you are upgrading from a previous installation of EasyMLR, enter the followin
 pip install git+https://github.com/gjpelletier/EasyMLR.git --upgrade
 ```
 
-Next import the **stepwise**, **lasso**, **ridge**, and **elastic** functions from the EasyMLR module as follows in your notebook or python code:<br>
+Next import the main functions from the EasyMLR module as follows in your notebook or python code:<br>
 ```
 from EasyMLR import stepwise, lasso, ridge, elastic, xgb, xgb_auto, gbr, lgbm, svr, stacking
 ```
