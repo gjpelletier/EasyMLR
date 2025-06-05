@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.25"
+__version__ = "1.1.26"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
@@ -1103,7 +1103,7 @@ def lasso(X, y, **kwargs):
         alpha_min= minimum value of range of alphas to evaluate (default=1e-3)
         alpha_max= maximum value of range of alphas to evaluate (default=1e3)
         n_alpha= number of log-spaced alphas to evaluate (default=100)
-        verbose= 'on' (default), 'off', or 1=show stats, coef, and residuals plot
+        verbose= 'on' (default), 'off', or 1=show stats and residuals plot
 
     Standardization is generally recommended for Lasso regression.
 
@@ -1707,16 +1707,17 @@ def lasso(X, y, **kwargs):
         print("\n")
         print(model_outputs['stats'].to_markdown(index=True))
         print("\n")
-        print("Coefficients of best models in model_outputs['popt']:")
-        print("\n")
-        print(model_outputs['popt_table'].to_markdown(index=True))
-        print("\n")
-        if not X_has_dummies:
-            print("Variance Inflation Factors model_outputs['vif']:")
-            print("Note: VIF>5 indicates excessive collinearity")
+        if verbose != 1:
+            print("Coefficients of best models in model_outputs['popt']:")
             print("\n")
-            print(model_outputs['vif_table'].to_markdown(index=True))
+            print(model_outputs['popt_table'].to_markdown(index=True))
             print("\n")
+            if not X_has_dummies:
+                print("Variance Inflation Factors model_outputs['vif']:")
+                print("Note: VIF>5 indicates excessive collinearity")
+                print("\n")
+                print(model_outputs['vif_table'].to_markdown(index=True))
+                print("\n")
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -1860,7 +1861,7 @@ def ridge(X, y, **kwargs):
         alpha_max= maximum value of range of alphas to evaluate (default=1e3)
         n_alpha= number of log-spaced alphas to evaluate (default=100)
         vif_target= VIF target for use with RidgeVIF (default=1.0)
-        verbose= 'on' (default), 'off', or 1=show stats, coef, and residuals plot
+        verbose= 'on' (default), 'off', or 1=show stats and residuals plot
 
     Standardization is generally recommended for Ridge regression.
 
@@ -2349,16 +2350,17 @@ def ridge(X, y, **kwargs):
         print("\n")
         print(model_outputs['stats'].to_markdown(index=True))
         print("\n")
-        print("Coefficients of best models in model_outputs['popt']:")
-        print("\n")
-        print(model_outputs['popt_table'].to_markdown(index=True))
-        print("\n")
-        if ~has_dummies:
-            print("Variance Inflation Factors model_outputs['vif']:")
-            print("Note: VIF>5 indicates excessive collinearity")
+        if verbose != 1:
+            print("Coefficients of best models in model_outputs['popt']:")
             print("\n")
-            print(model_outputs['vif_table'].to_markdown(index=True))
+            print(model_outputs['popt_table'].to_markdown(index=True))
             print("\n")
+            if ~has_dummies:
+                print("Variance Inflation Factors model_outputs['vif']:")
+                print("Note: VIF>5 indicates excessive collinearity")
+                print("\n")
+                print(model_outputs['vif_table'].to_markdown(index=True))
+                print("\n")
 
     # Print the run time
     fit_time = time.time() - start_time
