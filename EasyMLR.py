@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.20"
+__version__ = "1.1.22"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
@@ -4790,6 +4790,7 @@ def xgb_auto(X, y, **kwargs):
             'on': standardize X using sklearn.preprocessing StandardScaler
             'off': do not standardize X (only used if X is already standardized)
         gpu= True (default) or False to autodetect if the computer has a gpu and use it
+        'n_trials': 50,                     # number of optuna trials
         'random_state': 42,                 # Random seed for reproducibility.
         'verbosity': 1,                     # Verbosity of output 
                                             # (0 = silent, 1 = warnings, 2 = info).
