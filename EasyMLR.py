@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.26"
+__version__ = "1.1.27"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
@@ -1707,7 +1707,7 @@ def lasso(X, y, **kwargs):
         print("\n")
         print(model_outputs['stats'].to_markdown(index=True))
         print("\n")
-        if verbose != 1:
+        if data['verbose'] != 1:
             print("Coefficients of best models in model_outputs['popt']:")
             print("\n")
             print(model_outputs['popt_table'].to_markdown(index=True))
@@ -2350,7 +2350,7 @@ def ridge(X, y, **kwargs):
         print("\n")
         print(model_outputs['stats'].to_markdown(index=True))
         print("\n")
-        if verbose != 1:
+        if data['verbose'] != 1:
             print("Coefficients of best models in model_outputs['popt']:")
             print("\n")
             print(model_outputs['popt_table'].to_markdown(index=True))
