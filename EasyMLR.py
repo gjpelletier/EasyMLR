@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.24"
+__version__ = "1.1.25"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
@@ -1103,7 +1103,7 @@ def lasso(X, y, **kwargs):
         alpha_min= minimum value of range of alphas to evaluate (default=1e-3)
         alpha_max= maximum value of range of alphas to evaluate (default=1e3)
         n_alpha= number of log-spaced alphas to evaluate (default=100)
-        verbose= 'on' (default) or 'off'
+        verbose= 'on' (default), 'off', or 1=show stats, coef, and residuals plot
 
     Standardization is generally recommended for Lasso regression.
 
@@ -1227,7 +1227,7 @@ def lasso(X, y, **kwargs):
     # Suppress warnings
     warnings.filterwarnings('ignore')
     print('Fitting Lasso regression models, please wait ...')
-    if data['verbose'] == 'on':
+    if data['verbose'] == 'on' or data['verbose'] == 1:
         print("\n")
 
     # Set start time for calculating run time
@@ -1308,7 +1308,7 @@ def lasso(X, y, **kwargs):
     model_outputs['alpha_vs_AIC_BIC'] = alpha_vs_AIC_BIC
 
     # Lasso Plot the results of lasso coef as function of alpha
-    if data['verbose'] == 'on':
+    if data['verbose'] == 'on' and data['verbose'] != 1:
         ax = plt.gca()
         ax.plot(alphas, coefs)
         ax.set_xscale('log')
@@ -1321,7 +1321,7 @@ def lasso(X, y, **kwargs):
         plt.savefig("Lasso_alpha_vs_coef.png", dpi=300)
 
     # LassoCV Plot the MSE vs alpha for each fold
-    if data['verbose'] == 'on':
+    if data['verbose'] == 'on' and data['verbose'] != 1:
         lasso = model_cv
         plt.figure()
         plt.semilogx(lasso.alphas_, lasso.mse_path_, linestyle=":")
@@ -1345,7 +1345,7 @@ def lasso(X, y, **kwargs):
         plt.savefig("LassoCV_alpha_vs_MSE.png", dpi=300)
 
     # LassoLarsCV Plot the MSE vs alpha for each fold
-    if data['verbose'] == 'on' and X.shape[1] < 250:
+    if data['verbose'] == 'on' and data['verbose'] != 1 and X.shape[1] < 250:
         lasso = model_lars_cv
         plt.figure()
         plt.semilogx(lasso.cv_alphas_, lasso.mse_path_, ":")
@@ -1367,7 +1367,7 @@ def lasso(X, y, **kwargs):
         plt.savefig("LassoLarsCV_alpha_vs_MSE.png", dpi=300)
 
     # LassoLarsIC Plot of alphas to minimize AIC and BIC
-    if data['verbose'] == 'on':
+    if data['verbose'] == 'on' and data['verbose'] != 1:
         results = alpha_vs_AIC_BIC
         ax = results.plot()
         ax.vlines(
@@ -1396,7 +1396,7 @@ def lasso(X, y, **kwargs):
         plt.savefig("LassoLarsIC_alpha_vs_AIC_BIC.png", dpi=300)
 
     # LassoLarsIC Plot sequence of alphas to minimize AIC and BIC
-    if data['verbose'] == 'on':
+    if data['verbose'] == 'on' and data['verbose'] != 1:
         plt.figure()
         aic_criterion = model_aic.criterion_
         bic_criterion = model_bic.criterion_
@@ -1436,7 +1436,7 @@ def lasso(X, y, **kwargs):
     stats_bic = stats_given_model(X, y, model_bic)
 
     # residual plot for training error
-    if data['verbose'] == 'on':
+    if data['verbose'] == 'on' or data['verbose'] == 1:
         # plot predictions vs actual
         y_pred_cv = stats_cv['y_pred']
         y_pred_lars_cv = stats_lars_cv['y_pred']
@@ -1490,88 +1490,6 @@ def lasso(X, y, **kwargs):
         plt.xlabel('y_pred')
         plt.ylabel('residual')
         plt.savefig("Lasso_predictions_vs_residuals.png", dpi=300)
-        '''
-        # LassoCV
-        fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
-        PredictionErrorDisplay.from_predictions(
-            y,
-            y_pred=stats_cv['y_pred'],
-            kind="actual_vs_predicted",
-            ax=axs[0]
-        )
-        axs[0].set_title("Actual vs. Predicted")
-        PredictionErrorDisplay.from_predictions(
-            y,
-            y_pred=stats_cv['y_pred'],
-            kind="residual_vs_predicted",
-            ax=axs[1]
-        )
-        axs[1].set_title("Residuals vs. Predicted")
-        fig.suptitle(
-            f"LassoCV predictions compared with actual values and residuals (RMSE={stats_cv['RMSE']:.3f})")
-        plt.tight_layout()
-        plt.savefig("LassoCV_predictions.png", dpi=300)
-        # LassoLarsCV
-        fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
-        PredictionErrorDisplay.from_predictions(
-            y,
-            y_pred=stats_lars_cv['y_pred'],
-            kind="actual_vs_predicted",
-            ax=axs[0]
-        )
-        axs[0].set_title("Actual vs. Predicted")
-        PredictionErrorDisplay.from_predictions(
-            y,
-            y_pred=stats_lars_cv['y_pred'],
-            kind="residual_vs_predicted",
-            ax=axs[1]
-        )
-        axs[1].set_title("Residuals vs. Predicted")
-        fig.suptitle(
-            f"LassoLarsCV predictions compared with actual values and residuals (RMSE={stats_lars_cv['RMSE']:.3f})")
-        plt.tight_layout()
-        plt.savefig("LassoLarsCV_predictions.png", dpi=300)
-        # LassoLarsAIC
-        fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
-        PredictionErrorDisplay.from_predictions(
-            y,
-            y_pred=stats_aic['y_pred'],
-            kind="actual_vs_predicted",
-            ax=axs[0]
-        )
-        axs[0].set_title("Actual vs. Predicted")
-        PredictionErrorDisplay.from_predictions(
-            y,
-            y_pred=stats_aic['y_pred'],
-            kind="residual_vs_predicted",
-            ax=axs[1]
-        )
-        axs[1].set_title("Residuals vs. Predicted")
-        fig.suptitle(
-            f"LassoLarsAIC predictions compared with actual values and residuals (RMSE={stats_aic['RMSE']:.3f})")
-        plt.tight_layout()
-        plt.savefig("LassoLarsAIC_predictions.png", dpi=300)
-        # LassoLarsBIC
-        fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
-        PredictionErrorDisplay.from_predictions(
-            y,
-            y_pred=stats_bic['y_pred'],
-            kind="actual_vs_predicted",
-            ax=axs[0]
-        )
-        axs[0].set_title("Actual vs. Predicted")
-        PredictionErrorDisplay.from_predictions(
-            y,
-            y_pred=stats_bic['y_pred'],
-            kind="residual_vs_predicted",
-            ax=axs[1]
-        )
-        axs[1].set_title("Residuals vs. Predicted")
-        fig.suptitle(
-            f"LassoLarsBIC predictions compared with actual values and residuals (RMSE={stats_bic['RMSE']:.3f})")
-        plt.tight_layout()
-        plt.savefig("LassoLarsBIC_predictions.png", dpi=300)
-        '''
 
     # Find the AIC and BIC of the LassoLarsAIC and LassoLarsBIC models
     min_index_aic = model_outputs['alpha_vs_AIC_BIC']['AIC'].idxmin()
@@ -1784,7 +1702,7 @@ def lasso(X, y, **kwargs):
     model_outputs['stats'] = stats
     
     # Print model_outputs
-    if data['verbose'] == 'on':
+    if data['verbose'] == 'on' or data['verbose'] == 1:
         print("Lasso regression statistics of best models in model_outputs['stats']:")
         print("\n")
         print(model_outputs['stats'].to_markdown(index=True))
