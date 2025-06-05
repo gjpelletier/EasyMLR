@@ -2,8 +2,8 @@
 
 The EasyMLR module includes the following main Python functions to facilitate the use of sklearn, XGBoost, LightGBM, statsmodels, and optuna solvers: 
  
- - **lasso** - LassoCV, LassoLarsCV, and LassoLarsIC optimizing AIC/BIC
- - **ridge** - RidgeCV and Ridge optimizing VIF
+ - **lasso** - LassoCV, LassoLarsCV, and LassoLarsIC using AIC/BIC
+ - **ridge** - RidgeCV and Ridge using VIF
  - **elastic** - ElasticNetCV
  - **gbr** - GradientBoostingRegressor with user-specified hyper-parameters
  - **xgb** - XGBoostRegressor with user-specified hyper-parameters
