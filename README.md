@@ -175,7 +175,7 @@ Run the following code:
 from sklearn.datasets import load_diabetes
 X, y = load_diabetes(return_X_y=True, as_frame=True)
 
-# Use the lasso function in the EasyMLR module
+# Use the xgb_auto function in the EasyMLR module
 from EasyMLR import xgb_auto
 model_objects, model_outputs = xgb_auto(X, y)
 ```
