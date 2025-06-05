@@ -45,8 +45,6 @@ Lasso regression is useful for dealing with multicollinearity, where predictors 
 The **ridge** function in the EasyMLR module provides output of regression models and summary statistics using the following methods using sklearn.linear_model:
 
 - RidgeCV: RidgeCV regression with default cross-validation using the MSE as the scoring criterion to optimize alpha
-- RidgeAIC: Ridge regression using AIC as the scoring criterion to optimize alpha by trial
-- RidgeBIC: Ridge regression using BIC as the scoring criterion to optimize alpha by trial
 - RidgeVIF: Ridge regression using target VIF to optimize alpha by trial
 
 Ridge regression adds an L2 penalty to the loss function, which is the product of the regularization hyperparameter and the sum of the squares of the coefficients. This penalty shrinks the coefficients towards zero but does not force them to be exactly zero. 
@@ -129,14 +127,6 @@ Using AIC as the criterion is the default in the **stepwise** fuction. The user 
 - Model Selection: BIC is particularly useful when the sample size is large, as it encourages simpler models that are less likely to capture noise.
 - Model Recovery: Studies suggest that BIC tends to recover the true model more effectively than AIC, particularly in scenarios where the sample size is large.
 While both criteria are useful for model selection, BIC is often preferred for its stricter criteria, which helps in avoiding overfitting and improving model interpretability
-
-### Limitations of Ridge regression for feature selection and the utility of AIC and BIC
-
-Unlike Lasso regression, Ridge regression does not have zeroing of selected coefficients as a goal. Therefore, Ridge regression generally does not select a subset of features for the final best model. Instead, Ridge regression retains all of the candiate features in the input data set and has the goal of minimizing the coefficient values as a strategy to reduce the variance inflation factors to mitigate the effects of multicollinearity.
-
-AIC and BIC have limited value in optimizing Ridge regression. The AIC and BIC in Ridge regression is not sensitive to the alpha parameter because the AIC and BIC values are strongly affected by the number of model parameters. As the alpha parameter is adjusted, the AIC and BIC values change by a relatively small amount depending on the variance of the residuals at each value of alpha. This means that the AIC and BIC values across a wide range of alpha values do not penalize the model for having too many parameters in Ridge regression. Using AIC and BIC have the effect of choosing the lowest value of alpha, which is similar to performing ordinary linear regression without regularaization and with no mitigation of multicollinearity.
-
-If feature selection is the goal of the analysis, then Stepwise or Lasso regression methods are generally better than Ridge regression for that purpose. If your analysis requires that all candidate features are retained in the final model, then Ridge regression is ideal for that purpose using the **ridge** results for RidgCV.
 
 ### Acceptable VIF as the target for Ridge regression
 
@@ -372,56 +362,56 @@ Running the code above produces the following output display of the best fit mod
 Ridge regression statistics of best models in model_outputs['stats']:
 
 
-| Statistic          |         RidgeCV |        RidgeAIC |        RidgeBIC |        RidgeVIF |
-|:-------------------|----------------:|----------------:|----------------:|----------------:|
-| alpha              |     1.87382     |     0.001       |     0.001       |    53.367       |
-| r-squared          |     0.51733     |     0.517748    |     0.517748    |     0.511683    |
-| adjusted r-squared |     0.504982    |     0.505412    |     0.505412    |     0.499191    |
-| nobs               |   442           |   442           |   442           |   442           |
-| df residuals       |   431           |   431           |   431           |   431           |
-| df model           |    10           |    10           |    10           |    10           |
-| F-statistic        |    46.1949      |    46.2724      |    46.2724      |    45.1624      |
-| Prob (F-statistic) |     1.11022e-16 |     1.11022e-16 |     1.11022e-16 |     1.11022e-16 |
-| RMSE               |    53.4993      |    53.4761      |    53.4761      |    53.8114      |
-| Log-Likelihood     | -2386.18        | -2385.99        | -2385.99        | -2388.76        |
-| AIC                |  4794.37        |  4793.99        |  4793.99        |  4799.51        |
-| BIC                |  4839.37        |  4838.99        |  4838.99        |  4844.51        |
+| Statistic          |         RidgeCV |        RidgeVIF |
+|:-------------------|----------------:|----------------:|
+| alpha              |     1.87382     |    53.367       |
+| r-squared          |     0.51733     |     0.511683    |
+| adjusted r-squared |     0.504982    |     0.499191    |
+| n_samples          |   442           |   442           |
+| df residuals       |   431           |   431           |
+| df model           |    10           |    10           |
+| F-statistic        |    46.1949      |    45.1624      |
+| Prob (F-statistic) |     1.11022e-16 |     1.11022e-16 |
+| RMSE               |    53.4993      |    53.8114      |
+| Log-Likelihood     | -2386.18        | -2388.76        |
+| AIC                |  4794.37        |  4799.51        |
+| BIC                |  4839.37        |  4844.51        |
 
 
 Coefficients of best models in model_outputs['popt']:
 
 
-| Feature   |    RidgeCV |   RidgeAIC |   RidgeBIC |   RidgeVIF |
-|:----------|-----------:|-----------:|-----------:|-----------:|
-| const     | 152.133    | 152.133    | 152.133    | 152.133    |
-| age       |  -0.402061 |  -0.476067 |  -0.476067 |   0.132284 |
-| sex       | -11.2811   | -11.4068   | -11.4068   |  -9.59744  |
-| bmi       |  24.7848   |  24.7266   |  24.7266   |  22.9527   |
-| bp        |  15.3345   |  15.4293   |  15.4293   |  14.173    |
-| s1        | -25.6503   | -37.6704   | -37.6704   |  -3.44889  |
-| s2        |  13.1337   |  22.6685   |  22.6685   |  -3.5854   |
-| s3        |  -0.47979  |   4.8019   |   4.8019   |  -9.04181  |
-| s4        |   7.01112  |   8.42088  |   8.42088  |   5.55365  |
-| s5        |  31.1369   |  35.7308   |  35.7308   |  20.5852   |
-| s6        |   3.30159  |   3.21673  |   3.21673  |   4.25116  |
+| Feature   |    RidgeCV |   RidgeVIF |
+|:----------|-----------:|-----------:|
+| const     | 152.133    | 152.133    |
+| age       |  -0.402061 |   0.132284 |
+| sex       | -11.2811   |  -9.59744  |
+| bmi       |  24.7848   |  22.9527   |
+| bp        |  15.3345   |  14.173    |
+| s1        | -25.6503   |  -3.44889  |
+| s2        |  13.1337   |  -3.5854   |
+| s3        |  -0.47979  |  -9.04181  |
+| s4        |   7.01112  |   5.55365  |
+| s5        |  31.1369   |  20.5852   |
+| s6        |   3.30159  |   4.25116  |
 
 
 Variance Inflation Factors model_outputs['vif']:
 Note: VIF>5 indicates excessive collinearity
 
 
-| Feature   |   RidgeCV |   RidgeAIC |   RidgeBIC |   RidgeVIF |
-|:----------|----------:|-----------:|-----------:|-----------:|
-| age       |   1.20293 |    1.2173  |    1.2173  |   0.904903 |
-| sex       |   1.26072 |    1.27806 |    1.27806 |   0.918176 |
-| bmi       |   1.48134 |    1.50942 |    1.50942 |   1.02315  |
-| bp        |   1.43679 |    1.45942 |    1.45942 |   1.00172  |
-| s1        |  26.672   |   59.1714  |   59.1714  |   0.532883 |
-| s2        |  18.5444  |   39.1737  |   39.1737  |   0.7917   |
-| s3        |   8.59212 |   15.3958  |   15.3958  |   1.00853  |
-| s4        |   7.59308 |    8.89004 |    8.89004 |   1.40875  |
-| s5        |   5.49131 |   10.0716  |   10.0716  |   1.06848  |
-| s6        |   1.46335 |    1.48461 |    1.48461 |   1.0328   |
+| Feature   |   RidgeCV |   RidgeVIF |
+|:----------|----------:|-----------:|
+| age       |   1.20293 |   0.904903 |
+| sex       |   1.26072 |   0.918176 |
+| bmi       |   1.48134 |   1.02315  |
+| bp        |   1.43679 |   1.00172  |
+| s1        |  26.672   |   0.532883 |
+| s2        |  18.5444  |   0.7917   |
+| s3        |   8.59212 |   1.00853  |
+| s4        |   7.59308 |   1.40875  |
+| s5        |   5.49131 |   1.06848  |
+| s6        |   1.46335 |   1.0328   |
 ```
 
 The VIF results using RidgeCV show substantially reduced multicollinearity (2 features with VIF>10) compared with results of Ridge_AIC and Ridge_BIC (4 features with VIF>10). However, the multicollinearity for RidgeCV, RidgeAIC, and RidgeBIC is excessive. Using AIC and BIC to optimize the ridge regression is especially problematic. This is because AIC and BIC have limited value in optimizing Ridge regression. The lowest AIC and BIC values occur at the lowest vales of alpha, which is similar to performing ordinary linear regression with no regularization and no reduction in VIF. The AIC and BIC in Ridge regression is not sensitive to the alpha parameter because the AIC and BIC values are strongly affected by the number of model parameters. As the alpha parameter is adjusted, the AIC and BIC values change by a relatively small amount depending on the variance of the residuals at each value of alpha. This means that the AIC and BIC values across a wide range of alpha values do not penalize the model for having too many parameters in Ridge regression.
