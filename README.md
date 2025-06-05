@@ -13,7 +13,7 @@ The EasyMLR module includes the following main Python functions to facilitate th
  - **stacking** - StackingRegressor
  - **stepwise** - Stepwise multiple linear regression to minimize MSE, AIC, or BIC
  
-The functions in the EasyMLR module allow the user to write one line of python code to provide the following:
+The functions in EasyMLR allow the user to write one line of python code to provide the following:
 
 - final fitted model object
 - regression summary statistics of the best fit model (e.g. r-squared, adjusted r-squared, RMSE of residuals, p-value of the F-statistic, AIC, BIC, alpha, etc.)
