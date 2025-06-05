@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.28"
+__version__ = "1.1.29"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
@@ -2758,7 +2758,7 @@ def elastic(X, y, **kwargs):
     model_outputs['stats'] = stats
     
     # Print model_outputs
-    if data['verbose'] == 'on':
+    if data['verbose'] == 'on' or data['verbose'] == 1:
         print("ElasticNetCV regression statistics of best model in model_outputs['stats']:")
         print("\n")
         print(model_outputs['stats'].to_markdown(index=True))
