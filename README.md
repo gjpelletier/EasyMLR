@@ -9,7 +9,7 @@ The EasyMLR module includes the following main Python functions to facilitate th
  - **xgb** - XGBoostRegressor with user-specified hyper-parameters
  - **xgb_auto** - XGBoostRegressor with automatic cross-validated calibration of the best hyper-parameters
  - **lgbm** - LGBMRegressor with user-specified hyper-parameters
- - **svr** - SVR - Epsilon-Support Vector Regression with user-specified hyper-parameters
+ - **svr** - SVR Epsilon-Support Vector Regression with user-specified hyper-parameters
  - **stacking** - StackingRegressor
  - **stepwise** - Stepwise multiple linear regression to minimize MSE, AIC, or BIC
  
