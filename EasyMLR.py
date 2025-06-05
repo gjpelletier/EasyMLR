@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.23"
+__version__ = "1.1.24"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
@@ -1960,10 +1960,6 @@ def ridge(X, y, **kwargs):
                     as a function of alpha using Ridge
                 - 'alpha_vs_penalty': penalty factors
                     as a function of alpha using Ridge
-                - 'alpha_vs_AIC_BIC': AIC and BIC as a function of alpha 
-                    using RidgeAIC and RidgeBIC
-                - 'best_alpha_aic': alpha at the lowest AIC value from RidgeAIC
-                - 'best_alpha_bic': alpha at the lowest BIC value from RidgeBIC
                 - 'best_alpha_vif': alpha at the VIF closest to the target VIF value from RidgeVIF
                 - 'y_pred': Predicted y values
                 - 'residuals': Residuals (y-y_pred) for each of the methods
