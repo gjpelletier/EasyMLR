@@ -44,7 +44,7 @@ Lasso regression is useful for dealing with multicollinearity, where predictors 
 
 The **ridge** function in the EasyMLR module provides output of regression models and summary statistics using the following methods using sklearn.linear_model:
 
-- RidgeCV: RidgeCV regression with default cross-validation using the MSE as the scoring criterion to optimize alpha
+- RidgeCV: RidgeCV regression with cross-validation using the MSE as the scoring criterion to optimize alpha
 - RidgeVIF: Ridge regression using target VIF to optimize alpha by trial
 
 Ridge regression adds an L2 penalty to the loss function, which is the product of the regularization hyperparameter and the sum of the squares of the coefficients. This penalty shrinks the coefficients towards zero but does not force them to be exactly zero. 
