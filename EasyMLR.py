@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.27"
+__version__ = "1.1.28"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
@@ -2407,7 +2407,7 @@ def elastic(X, y, **kwargs):
             the different values are tested by cross-validation 
             and the one giving the best prediction score is used. 
             default is l1_ratio= np.linspace(0.01,1,100)        
-        verbose= 'on' (default) or 'off'
+        verbose= 'on' (default), 'off', or 1=show stats and residuals plot
 
     Standardization is generally recommended for ElasticNet regression.
 
@@ -2524,7 +2524,7 @@ def elastic(X, y, **kwargs):
     # Suppress warnings
     warnings.filterwarnings('ignore')
     print('Fitting Elastic Net regression model, please wait ...')
-    if data['verbose'] == 'on':
+    if data['verbose'] == 'on' or data['verbose'] == 1:
         print("\n")
 
     # Set start time for calculating run time
@@ -2584,7 +2584,7 @@ def elastic(X, y, **kwargs):
     model_outputs['alpha_vs_coef'] = alpha_vs_coef
     
     # Plot the results of coef as function of alpha
-    if data['verbose'] == 'on':
+    if data['verbose'] == 'on' and data['verbose'] != 1:
         ax = plt.gca()
         ax.plot(alphas, coefs)
         ax.set_xscale('log')
@@ -2597,7 +2597,7 @@ def elastic(X, y, **kwargs):
         plt.savefig("ElasticNet_alpha_vs_coef.png", dpi=300)
 
     # ElasticNetCV Plot the MSE vs alpha for each fold
-    if data['verbose'] == 'on':
+    if data['verbose'] == 'on' and data['verbose'] != 1:
         model = model_cv
         plt.figure()
         plt.semilogx(np.squeeze(model.alphas_[l1_ratio_idx]), 
@@ -2625,7 +2625,7 @@ def elastic(X, y, **kwargs):
     stats_cv = stats_given_model(X, y, model_cv)
 
     # residual plot for training error
-    if data['verbose'] == 'on':
+    if data['verbose'] == 'on' or data['verbose'] == 1:
         '''
         y_pred_cv = stats_cv['y_pred']
         res_cv = stats_cv['residuals']
@@ -2763,16 +2763,17 @@ def elastic(X, y, **kwargs):
         print("\n")
         print(model_outputs['stats'].to_markdown(index=True))
         print("\n")
-        print("Coefficients of best model in model_outputs['popt']:")
-        print("\n")
-        print(model_outputs['popt_table'].to_markdown(index=True))
-        print("\n")
-        if not X_has_dummies:
-            print("Variance Inflation Factors model_outputs['vif']:")
-            print("Note: VIF>5 indicates excessive collinearity")
+        if data['verbose'] != 1:
+            print("Coefficients of best model in model_outputs['popt']:")
             print("\n")
-            print(model_outputs['vif_table'].to_markdown(index=True))
+            print(model_outputs['popt_table'].to_markdown(index=True))
             print("\n")
+            if not X_has_dummies:
+                print("Variance Inflation Factors model_outputs['vif']:")
+                print("Note: VIF>5 indicates excessive collinearity")
+                print("\n")
+                print(model_outputs['vif_table'].to_markdown(index=True))
+                print("\n")
 
     # Print the run time
     fit_time = time.time() - start_time
