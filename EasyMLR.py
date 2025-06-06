@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.31"
+__version__ = "1.1.32"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
@@ -4549,7 +4549,7 @@ def xgb_auto(X, y, **kwargs):
         'objective': "reg:squarederror",    # Loss function for regression.
         'booster': "gbtree",                # Type of booster ('gbtree', 'gblinear', or 'dart').
         # 'learning_rate': [0.01, 0.3],       # Step size shrinkage (also called eta).
-        'learning_rate': [0.0001, 1],       # Step size shrinkage (also called eta).
+        'learning_rate': [0.001, 1],       # Step size shrinkage (also called eta).
         # 'max_depth': [3, 10],               # Maximum depth of a tree.
         'max_depth': [1, 20],               # Maximum depth of a tree.
         # 'min_child_weight': [1, 10],        # Minimum sum of instance weight (hessian) needed in a child.
@@ -4647,7 +4647,7 @@ def xgb_auto(X, y, **kwargs):
         'n_estimators': data['n_estimators'] 
     }
 
-    print('Running optuna to find best parameters, could take a few minutes, please wait...')
+    print('Running optuna to find best parameters, takes a few minutes, please wait...')
     optuna.logging.set_verbosity(optuna.logging.ERROR)
     study = optuna.create_study(direction="maximize")
     study.optimize(lambda trial: xgb_objective(trial, X, y, **obj_kwargs), n_trials=data['n_trials'])
