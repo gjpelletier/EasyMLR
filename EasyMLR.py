@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.29"
+__version__ = "1.1.30"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
@@ -4430,9 +4430,9 @@ def xgb_objective(trial, X, y, **kwargs):
     
     params = {
         "learning_rate": trial.suggest_float("learning_rate",
-            kwargs['learning_rate'][0], kwargs['learning_rate'][1]),
+            kwargs['learning_rate'][0], kwargs['learning_rate'][1], log=True),
         "max_depth": trial.suggest_int("max_depth",
-            kwargs['max_depth'][0], kwargs['max_depth'][1]),
+            kwargs['max_depth'][0], kwargs['max_depth'][1], log=True),
         "min_child_weight": trial.suggest_int("min_child_weight",
             kwargs['min_child_weight'][0], kwargs['min_child_weight'][1]),
         "subsample": trial.suggest_float("subsample",
@@ -4440,13 +4440,13 @@ def xgb_objective(trial, X, y, **kwargs):
         "colsample_bytree": trial.suggest_float("colsample_bytree",
             kwargs['colsample_bytree'][0], kwargs['colsample_bytree'][1]),
         "gamma": trial.suggest_float("gamma",
-            kwargs['gamma'][0], kwargs['gamma'][1]),
+            kwargs['gamma'][0], kwargs['gamma'][1], log=True),
         "reg_lambda": trial.suggest_float("reg_lambda",
-            kwargs['reg_lambda'][0], kwargs['reg_lambda'][1]),
+            kwargs['reg_lambda'][0], kwargs['reg_lambda'][1], log=True),
         "alpha": trial.suggest_float("alpha",
-            kwargs['alpha'][0], kwargs['alpha'][1]),
+            kwargs['alpha'][0], kwargs['alpha'][1], log=True),
         "n_estimators": trial.suggest_int("n_estimators",
-            kwargs['n_estimators'][0], kwargs['n_estimators'][1]),
+            kwargs['n_estimators'][0], kwargs['n_estimators'][1], log=True),
     }    
     # Train model with CV
     model = xgb.XGBRegressor(**params, random_state=42, device=device)
@@ -4548,14 +4548,20 @@ def xgb_auto(X, y, **kwargs):
         'verbosity': 1,                     # Verbosity of output (0 = silent, 1 = warnings, 2 = info).
         'objective': "reg:squarederror",    # Loss function for regression.
         'booster': "gbtree",                # Type of booster ('gbtree', 'gblinear', or 'dart').
-        'learning_rate': [0.01, 0.3],       # Step size shrinkage (also called eta).
-        'max_depth': [3, 10],               # Maximum depth of a tree.
-        'min_child_weight': [1, 10],        # Minimum sum of instance weight (hessian) needed in a child.
+        # 'learning_rate': [0.01, 0.3],       # Step size shrinkage (also called eta).
+        'learning_rate': [0.001, 1],       # Step size shrinkage (also called eta).
+        # 'max_depth': [3, 10],               # Maximum depth of a tree.
+        'max_depth': [1, 20],               # Maximum depth of a tree.
+        # 'min_child_weight': [1, 10],        # Minimum sum of instance weight (hessian) needed in a child.
+        'min_child_weight': [1, 20],        # Minimum sum of instance weight (hessian) needed in a child.
         'subsample': [0.5, 1],              # Fraction of samples used for training each tree.
         'colsample_bytree': [0.5, 1],       # Fraction of features used for each tree.
-        'gamma': [0, 10],                   # Minimum loss reduction to make a split.
-        'reg_lambda': [0, 10],              # L2 regularization term on weights.
-        'alpha': [0, 10],                   # L1 regularization term on weights.
+        # 'gamma': [0, 10],                   # Minimum loss reduction to make a split.
+        'gamma': [0.00001, 10],                   # Minimum loss reduction to make a split.
+        # 'reg_lambda': [0, 10],              # L2 regularization term on weights.
+        'reg_lambda': [0.00001, 10],              # L2 regularization term on weights.
+        # 'alpha': [0, 10],                   # L1 regularization term on weights.
+        'alpha': [0.00001, 10],                   # L1 regularization term on weights.
         'n_estimators': [100, 1000]         # Number of boosting rounds (trees).
     }
 
