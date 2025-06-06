@@ -174,12 +174,12 @@ Running the code above produces the following display of regression statistics:
 ```
 | Statistic   |   XGBRegressor |
 |:------------|---------------:|
-| r-squared   |       0.822423 |
-| RMSE        |      32.4501   |
+| r-squared   |       0.713027 |
+| RMSE        |      41.2519   |
 | n_samples   |     442        |
 ```
 
-![XGBRegressor_predictions](https://github.com/user-attachments/assets/18c35b98-daed-4efa-81ba-d0b6e7006fed)
+![XGBRegressor_predictions](https://github.com/user-attachments/assets/37834bd8-36d1-4b69-8992-49ec70411882)
 
 
 ## Example 2. Use Lasso regression to analyze diabetes data
