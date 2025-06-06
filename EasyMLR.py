@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.38"
+__version__ = "1.1.39"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
