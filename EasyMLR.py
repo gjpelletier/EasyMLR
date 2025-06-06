@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.37"
+__version__ = "1.1.38"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
@@ -2883,8 +2883,8 @@ def stacking(X, y, **kwargs):
 
     # Define default values of input data arguments
     defaults = {
-        'standardize': 'on',
         'random_state': 42,
+        'standardize': 'on',
         'meta': 'ridge',
         'lasso': 'on',
         'ridge': 'on',
@@ -3515,7 +3515,6 @@ def svr_objective(trial, X, y, **kwargs):
     }
 
     # Train model with CV
-    # model = xgb.XGBRegressor(**params, random_state=kwargs['random_state'], device=device)
     model = SVR(**params, **extra_params)
     score = cross_val_score(model, X, y, cv=5, scoring="neg_root_mean_squared_error")    
     return np.mean(score)
@@ -3896,8 +3895,8 @@ def sgd(X, y, **kwargs):
 
     # Define default values of input data arguments
     defaults = {
-        'standardize': 'on',
         'random_state': 42,
+        'standardize': 'on',
         'verbose': 'on'
         }
 
@@ -4183,11 +4182,10 @@ def gbr(X, y, **kwargs):
 
     # Define default values of input data arguments
     defaults = {
+        'random_state':  42,              # initial random seed
         'standardize': 'on',
-        'random_state': 42,
         'nfolds': 20,
         'verbose': 'on',
-        'random_state':  42,              # initial random seed
         'loss': 'squared_error',          # Loss function to optimize. Default is 'squared_error' (mean squared error).
         'learning_rate': 0.1,             # Shrinks the contribution of each tree. Default is 0.1.
         'n_estimators': 100,              # Number of boosting stages (trees). Default is 100.
@@ -4436,6 +4434,7 @@ def xgb(X, y, **kwargs):
             'off': do not standardize X (only used if X is already standardized)
         gpu= True (default) or False to autodetect if the computer has a gpu and use it
 
+        random_state= 42,           # Random seed for reproducibility.
         n_estimators= 100,          # Number of boosting rounds (trees).
         max_depth= 6,               # Maximum depth of a tree.
         learning_rate= 0.3,         # Step size shrinkage (also called eta).
@@ -4454,7 +4453,6 @@ def xgb(X, y, **kwargs):
         reg_lambda= 1,              # L2 regularization term on weights.
         scale_pos_weight= 1,        # Balancing of positive and negative weights.
         base_score= 0.5,            # Initial prediction score (global bias).
-        random_state= 42,           # Random seed for reproducibility.
         missing= np.nan,            # Value in the data to be treated as missing.
         importance_type= "gain",    # Feature importance type ('weight', 'gain', 'cover', 'total_gain', 'total_cover').
         predictor= "auto",          # Type of predictor ('cpu_predictor', 'gpu_predictor').
@@ -4504,6 +4502,7 @@ def xgb(X, y, **kwargs):
 
     # Define default values of input data arguments
     defaults = {
+        'random_state': 42,           # Random seed for reproducibility.
         'standardize': 'on',
         'verbose': 'on',
         'gpu': True,                  # Autodetect if the computer has a gpu, if no gpu is detected then cpu will be used
@@ -4525,7 +4524,6 @@ def xgb(X, y, **kwargs):
         'reg_lambda': 1,              # L2 regularization term on weights.
         'scale_pos_weight': 1,        # Balancing of positive and negative weights.
         'base_score': 0.5,            # Initial prediction score (global bias).
-        'random_state': 42,           # Random seed for reproducibility.
         'missing': np.nan,            # Value in the data to be treated as missing.
         'importance_type': "gain",    # Feature importance type ('weight', 'gain', 'cover', 'total_gain', 'total_cover').
         'predictor': "auto",          # Type of predictor ('cpu_predictor', 'gpu_predictor').
@@ -4604,6 +4602,7 @@ def xgb(X, y, **kwargs):
         X = X.copy()
 
     fitted_model = XGBRegressor(
+        random_state= data['random_state'],         
         n_estimators= data['n_estimators'],          
         max_depth= data['max_depth'],               
         learning_rate= data['learning_rate'],         
@@ -4622,7 +4621,6 @@ def xgb(X, y, **kwargs):
         reg_lambda= data['reg_lambda'],             
         scale_pos_weight= data['scale_pos_weight'],        
         base_score= data['base_score'],            
-        random_state= data['random_state'],         
         missing= data['missing'],           
         importance_type= data['importance_type'],    
         device= data['device'],                 
@@ -4756,21 +4754,21 @@ def xgb_objective(trial, X, y, **kwargs):
     }    
 
     extra_params = {
-        random_state= kwargs['random_state'],         
-        device= kwargs['device'],                 
-        verbosity= kwargs['verbosity'],              
-        objective= kwargs['objective'], 
-        booster= kwargs['booster'],          
-        tree_method= kwargs['tree_method'],        
-        nthread= kwargs['nthread'],                  
-        colsample_bylevel= kwargs['colsample_bylevel'],       
-        colsample_bynode= kwargs['colsample_bynode'],        
-        scale_pos_weight= kwargs['scale_pos_weight'],        
-        base_score= kwargs['base_score'],            
-        missing= kwargs['missing'],           
-        importance_type= kwargs['importance_type'],    
-        predictor= kwargs['predictor'],          
-        enable_categorical= kwargs['enable_categorical']  
+        'random_state': kwargs['random_state'],         
+        'device': kwargs['device'],                 
+        'verbosity': kwargs['verbosity'],              
+        'objective': kwargs['objective'], 
+        'booster': kwargs['booster'],          
+        'tree_method': kwargs['tree_method'],        
+        'nthread': kwargs['nthread'],                  
+        'colsample_bylevel': kwargs['colsample_bylevel'],       
+        'colsample_bynode': kwargs['colsample_bynode'],        
+        'scale_pos_weight': kwargs['scale_pos_weight'],        
+        'base_score': kwargs['base_score'],            
+        'missing': kwargs['missing'],           
+        'importance_type': kwargs['importance_type'],    
+        'predictor': kwargs['predictor'],          
+        'enable_categorical': kwargs['enable_categorical']  
     }
 
     # Train model with CV
@@ -4828,7 +4826,6 @@ def xgb_auto(X, y, **kwargs):
         colsample_bynode= 1,        # Fraction of features used per tree node.
         scale_pos_weight= 1,        # Balancing of positive and negative weights.
         base_score= 0.5,            # Initial prediction score (global bias).
-        random_state= 42,           # Random seed for reproducibility.
         missing= np.nan,            # Value in the data to be treated as missing.
         importance_type= "gain",    # Feature importance type ('weight', 'gain', 'cover', 'total_gain', 'total_cover').
         predictor= "auto",          # Type of predictor ('cpu_predictor', 'gpu_predictor').
@@ -4986,21 +4983,21 @@ def xgb_auto(X, y, **kwargs):
         X = X.copy()
 
     extra_params = {
-        random_state= data['random_state'],         
-        device= data['device'],                 
-        verbosity= data['verbosity'],              
-        objective= data['objective'], 
-        booster= data['booster'],          
-        tree_method= data['tree_method'],        
-        nthread= data['nthread'],                  
-        colsample_bylevel= data['colsample_bylevel'],       
-        colsample_bynode= data['colsample_bynode'],        
-        scale_pos_weight= data['scale_pos_weight'],        
-        base_score= data['base_score'],            
-        missing= data['missing'],           
-        importance_type= data['importance_type'],    
-        predictor= data['predictor'],          
-        enable_categorical= data['enable_categorical']  
+        'random_state': data['random_state'],         
+        'device': data['device'],                 
+        'verbosity': data['verbosity'],              
+        'objective': data['objective'], 
+        'booster': data['booster'],          
+        'tree_method': data['tree_method'],        
+        'nthread': data['nthread'],                  
+        'colsample_bylevel': data['colsample_bylevel'],       
+        'colsample_bynode': data['colsample_bynode'],        
+        'scale_pos_weight': data['scale_pos_weight'],        
+        'base_score': data['base_score'],            
+        'missing': data['missing'],           
+        'importance_type': data['importance_type'],    
+        'predictor': data['predictor'],          
+        'enable_categorical': data['enable_categorical']  
     }
 
     print('Running optuna to find best parameters, could take a few minutes, please wait...')
@@ -5196,6 +5193,7 @@ def lgbm(X, y, **kwargs):
 
     # Define default values of input data arguments
     defaults = {
+        'random_state': 42,       # Random seed for reproducibility
         'standardize': 'on',
         'verbose': 'on',
         'verbosity': -1,  # -1 to turn off lgbm warnings
@@ -5215,7 +5213,6 @@ def lgbm(X, y, **kwargs):
         'colsample_bytree': 1.0,  # Fraction of features to be used for each tree
         'reg_alpha': 0.0,         # L1 regularization term on weights
         'reg_lambda': 0.0,        # L2 regularization term on weights
-        'random_state': 42,       # Random seed for reproducibility
         'n_jobs': -1,             # Number of parallel threads (-1 uses all available cores)
         'importance_type': 'split' # Type of feature importance ('split' or 'gain')
         }
@@ -5283,6 +5280,7 @@ def lgbm(X, y, **kwargs):
         X = X.copy()
 
     fitted_model = LGBMRegressor(
+        random_state= data['random_state'],     
         verbosity= data['verbosity'],
         boosting_type= data['boosting_type'],
         num_leaves= data['num_leaves'],         
@@ -5300,7 +5298,6 @@ def lgbm(X, y, **kwargs):
         colsample_bytree= data['colsample_bytree'], 
         reg_alpha= data['reg_alpha'],         
         reg_lambda= data['reg_lambda'],        
-        random_state= data['random_state'],     
         n_jobs= data['n_jobs'],            
         # silent= data['silent'],         
         importance_type= data['importance_type'] 
