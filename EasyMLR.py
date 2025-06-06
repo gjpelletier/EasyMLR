@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.39"
+__version__ = "1.1.40"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
@@ -3548,20 +3548,27 @@ def svr_auto(X, y, **kwargs):
         standardize= 'on',
         verbose= 'on' (default) or 'off'
 
-        # params that are optimized by optuna
-        C= [0.1, 1000],           # range of C Regularization parameter. The strength of the regularization is inversely proportional to C. Must be strictly positive. The penalty is a squared l2.
-        epsilon= [0.01, 1.0],     # range of epsilon Epsilon in the epsilon-SVR model. Must be non-negative
+        # [min, max] ranges of params for model to be optimized by optuna:
+        C= [0.1, 1000],           # C Regularization parameter. 
+                                  # The strength of the regularization is 
+                                  # inversely proportional to C. 
+                                  # Must be strictly positive. The penalty is a squared l2.
+        epsilon= [0.01, 1.0],     # Epsilon in the epsilon-SVR model. Must be non-negative
         # gamma= [0.0001, 1.0],   # range of gamma values if not using 'scale' or 'auto'
         gamma= 'scale',           # {'scale', 'auto'}, default='scale'
 
         # extra_params that are optional user-specified
-        kernel= 'rbf',            # {‘linear’, ‘poly’, ‘rbf’, ‘sigmoid’, ‘precomputed’}, default=’rbf’
-        degree= 3,                # Degree of the polynomial kernel function (‘poly’). Must be non-negative. Ignored by all other kernels.
-        coef0= 0.0,               # Independent term in kernel function. It is only significant in ‘poly’ and ‘sigmoid’
+        kernel= 'rbf',            # {‘linear’, ‘poly’, ‘rbf’, ‘sigmoid’, 
+                                  # ‘precomputed’}, default=’rbf’
+        degree= 3,                # Degree of the polynomial kernel function (‘poly’). 
+                                  # Must be non-negative. Ignored by all other kernels.
+        coef0= 0.0,               # Independent term in kernel function. 
+                                  # It is only significant in ‘poly’ and ‘sigmoid’
         tol= 0.001,               # Tolerance for stopping criterion
         shrinking= True,          # Whether to use the shrinking heuristic.
         cache_size= 200,          # Specify the size of the kernel cache (in MB)
-        max_iter= -1              # Hard limit on iterations within solver, or -1 for no limit
+        max_iter= -1              # Hard limit on iterations within solver, 
+                                  # or -1 for no limit
 
     Standardization is generally recommended
 
@@ -4802,11 +4809,11 @@ def xgb_auto(X, y, **kwargs):
         gpu= True (default) or False to autodetect if the computer has a gpu and use it
         n_trials= 50,                     # number of optuna trials
 
-        # params for model to be optimized by optuna:
-        learning_rate= [0.01, 0.3],       # Range of Step size shrinkage (also called eta).
-        max_depth= [3, 10],               # Range of Maximum depth of a tree.
-        min_child_weight= [1, 10],        # Range of Minimum sum of instance weight 
-                                            #(hessian) needed in a child.
+        # [min, max] ranges of params for model to be optimized by optuna:
+        learning_rate= [0.01, 0.3],       # Step size shrinkage (also called eta).
+        max_depth= [3, 10],               # Maximum depth of a tree.
+        min_child_weight= [1, 10],        # Minimum sum of instance weight 
+                                          # (hessian) needed in a child.
         subsample= [0.5, 1],              # Fraction of samples used for training each tree.
         colsample_bytree= [0.5, 1],       # Fraction of features used for each tree.
         gamma= [0, 10],                   # Minimum loss reduction to make a split.
@@ -4827,7 +4834,8 @@ def xgb_auto(X, y, **kwargs):
         scale_pos_weight= 1,        # Balancing of positive and negative weights.
         base_score= 0.5,            # Initial prediction score (global bias).
         missing= np.nan,            # Value in the data to be treated as missing.
-        importance_type= "gain",    # Feature importance type ('weight', 'gain', 'cover', 'total_gain', 'total_cover').
+        importance_type= "gain",    # Feature importance type 
+                                    # ('weight', 'gain', 'cover', 'total_gain', 'total_cover').
         predictor= "auto",          # Type of predictor ('cpu_predictor', 'gpu_predictor').
         enable_categorical= False   # Whether to enable categorical data support.    
 
