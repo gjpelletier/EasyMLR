@@ -3471,6 +3471,346 @@ def svr(X, y, **kwargs):
 
     return model_objects, model_outputs
 
+def svr_objective(trial, X, y, **kwargs):
+    '''
+    Objective function used by optuna 
+    to find the optimum hyper-parameters for SVR
+    '''
+    import numpy as np
+    # import xgboost as xgb
+    from sklearn.model_selection import cross_val_score
+    from EasyMLR import detect_gpu
+    from sklearn.svm import SVR
+
+    # Detect if the computer has an nvidia gpu, and if so use the gpu
+    use_gpu = detect_gpu()
+    if use_gpu:
+        device = 'gpu'
+    else:
+        device = 'cpu'
+
+    # Set global random seed
+    np.random.seed(kwargs['random_state'])
+    
+    params = {
+        "C": trial.suggest_float("C",
+            kwargs['C'][0], kwargs['C'][1], log=True),
+        "epsilon": trial.suggest_float("epsilon",
+            kwargs['epsilon'][0], kwargs['epsilon'][1]),
+    }
+    
+    if kwargs["gamma"] == "scale" or kwargs["gamma"] == "auto":
+        params["gamma"] = kwargs["gamma"]
+    else:
+        params["gamma"] = trial.suggest_float("gamma", 0.0001, 1.0, log=True)
+
+    extra_params = {
+        'kernel': kwargs['kernel'],                                  
+        'degree': kwargs['degree'],    
+        'coef0': kwargs['coef0'],    
+        'tol': kwargs['tol'],         
+        'shrinking': kwargs['shrinking'],    
+        'cache_size': kwargs['cache_size'],    
+        'max_iter': kwargs['max_iter']      
+    }
+
+    # Train model with CV
+    # model = xgb.XGBRegressor(**params, random_state=kwargs['random_state'], device=device)
+    model = SVR(**params, **extra_params)
+    score = cross_val_score(model, X, y, cv=5, scoring="neg_root_mean_squared_error")    
+    return np.mean(score)
+
+def svr_auto(X, y, **kwargs):
+
+    """
+    Autocalibration of SVR hyper-parameters
+    Beta version
+
+    by
+    Greg Pelletier
+    gjpelletier@gmail.com
+    04-June-2025
+
+    REQUIRED INPUTS (X and y should have same number of rows and 
+    only contain real numbers)
+    X = dataframe of the candidate independent variables 
+        (as many columns of data as needed)
+    y = dataframe of the dependent variable (one column of data)
+
+    OPTIONAL KEYWORD ARGUMENTS
+    **kwargs (optional keyword arguments):
+        verbose= 'on' (default) or 'off'
+        standardize= 'on' (default) or 'off' where
+            'on': standardize X using sklearn.preprocessing StandardScaler
+            'off': do not standardize X (only used if X is already standardized)
+        n_trials= 50,             # number of optuna trials
+        random_state= 42,         # Random seed for reproducibility.
+        C= [0.1, 1000],           # range of C Regularization parameter. The strength of the regularization is inversely proportional to C. Must be strictly positive. The penalty is a squared l2.
+        epsilon= [0.01, 1.0],     # range of epsilon Epsilon in the epsilon-SVR model. Must be non-negative
+        # gamma=[0.0001, 1.0],    # range of gamma values if not using 'scale' or 'auto'
+        gamma='scale',            # {'scale', 'auto'}, default='scale'
+        kernel= 'rbf',            # {‘linear’, ‘poly’, ‘rbf’, ‘sigmoid’, ‘precomputed’}, default=’rbf’
+        degree= 3,                # Degree of the polynomial kernel function (‘poly’). Must be non-negative. Ignored by all other kernels.
+        coef0= 0.0,               # Independent term in kernel function. It is only significant in ‘poly’ and ‘sigmoid’
+        tol= 0.001,               # Tolerance for stopping criterion
+        shrinking= True,          # Whether to use the shrinking heuristic.
+        cache_size= 200,          # Specify the size of the kernel cache (in MB)
+        max_iter= -1              # Hard limit on iterations within solver, or -1 for no limit
+
+    Standardization is generally recommended
+
+    RETURNS
+        fitted_model, model_outputs
+            model_objects is the fitted model object
+            model_outputs is a dictionary of the following outputs: 
+                - 'scaler': sklearn.preprocessing StandardScaler for X
+                - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'best_params': best model hyper-parameters found by optuna
+                - 'y_pred': Predicted y values
+                - 'residuals': Residuals (y-y_pred) for each of the four methods
+                - 'stats': Regression statistics for each model
+
+    NOTE
+    Do any necessary/optional cleaning of the data before 
+    passing the data to this function. X and y should have the same number of rows
+    and contain only real numbers with no missing values. X can contain as many
+    columns as needed, but y should only be one column. X should have unique
+    column names for for each column
+
+    EXAMPLE 
+    model_objects, model_outputs = xgb(X, y)
+
+    """
+
+    from EasyMLR import stats_given_y_pred, detect_dummy_variables, detect_gpu
+    import time
+    import pandas as pd
+    import numpy as np
+    from sklearn.ensemble import GradientBoostingRegressor
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.model_selection import cross_val_score, train_test_split
+    from sklearn.metrics import mean_squared_error
+    from sklearn.base import clone
+    from sklearn.metrics import PredictionErrorDisplay
+    from sklearn.model_selection import train_test_split
+    import matplotlib.pyplot as plt
+    import warnings
+    import sys
+    import statsmodels.api as sm
+    # import xgboost as xgb
+    # from xgboost import XGBRegressor
+    import optuna
+    from sklearn.svm import SVR
+
+    # Define default values of input data arguments
+    defaults = {
+        'gpu': True,                        # Autodetect to use gpu if present
+        'random_state': 42,                 # Random seed for reproducibility.
+        'n_trials': 50,                     # number of optuna trials
+        'standardize': 'on',
+        'verbose': 'on',
+        'C': [0.1, 1000],           # range of C Regularization parameter. The strength of the regularization is inversely proportional to C. Must be strictly positive. The penalty is a squared l2.
+        'epsilon': [0.01, 1.0],     # range of epsilon Epsilon in the epsilon-SVR model. Must be non-negative
+        # 'gamma': [0.0001, 1.0],   # range of gamma values if not using 'scale' or 'auto'
+        'gamma': 'scale',           # {'scale', 'auto'}, default='scale'
+        'kernel': 'rbf',            # {‘linear’, ‘poly’, ‘rbf’, ‘sigmoid’, ‘precomputed’}, default=’rbf’
+        'degree': 3,                # Degree of the polynomial kernel function (‘poly’). Must be non-negative. Ignored by all other kernels.
+        'coef0': 0.0,               # Independent term in kernel function. It is only significant in ‘poly’ and ‘sigmoid’
+        'tol': 0.001,               # Tolerance for stopping criterion
+        'shrinking': True,          # Whether to use the shrinking heuristic.
+        'cache_size': 200,          # Specify the size of the kernel cache (in MB)
+        'max_iter': -1              # Hard limit on iterations within solver, or -1 for no limit
+    }
+
+    # Update input data argumements with any provided keyword arguments in kwargs
+    data = {**defaults, **kwargs}
+
+    # Dictionary to pass to optuna
+
+    if data['gpu']:
+        use_gpu = detect_gpu()
+        if use_gpu:
+            data['device'] = 'gpu'
+        else:
+            data['device'] = 'cpu'
+    else:
+        data['device'] = 'cpu'
+
+    # check for input errors
+    ctrl = isinstance(X, pd.DataFrame)
+    if not ctrl:
+        print('Check X: it needs to be pandas dataframes!','\n')
+        sys.exit()
+    ctrl = (X.index == y.index).all()
+    if not ctrl:
+        print('Check X and y: they need to have the same index values!','\n')
+        sys.exit()
+    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
+    if not ctrl:
+        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
+        sys.exit()
+    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
+    if not ctrl:
+        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        sys.exit()
+    ctrl = X.shape[0] == y.shape[0]
+    if not ctrl:
+        print('Check X and y: X and y need to have the same number of rows!','\n')
+        sys.exit()
+    ctrl = X.columns.is_unique
+    if not ctrl:
+        print('Check X: X needs to have unique column names for every column!','\n')
+        sys.exit()
+
+    # Suppress warnings
+    warnings.filterwarnings('ignore')
+
+    # Set start time for calculating run time
+    start_time = time.time()
+
+    # Set global random seed
+    np.random.seed(42)
+
+    # check if X contains dummy variables
+    X_has_dummies = detect_dummy_variables(X)
+
+    # Initialize output dictionaries
+    model_objects = {}
+    model_outputs = {}
+
+    # Standardized X (X_scaled)
+    scaler = StandardScaler().fit(X)
+    X_scaled = scaler.transform(X)
+    # Convert scaled arrays into pandas dataframes with same column names as X
+    X_scaled = pd.DataFrame(X_scaled, columns=X.columns)
+    # Copy index from unscaled to scaled dataframes
+    X_scaled.index = X.index
+    # model_outputs['X_scaled'] = X_scaled                 # standardized X
+    model_outputs['scaler'] = scaler                     # scaler used to standardize X
+    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+
+    # Specify X to be used for fitting the models 
+    if data['standardize'] == 'on':
+        X = X_scaled.copy()
+    elif data['standardize'] == 'off':
+        X = X.copy()
+
+    # extra params in addition to those being optimized by optuna
+    extra_params = {
+        'kernel': data['kernel'],                                  
+        'degree': data['degree'],    
+        'coef0': data['coef0'],    
+        'tol': data['tol'],         
+        'shrinking': data['shrinking'],    
+        'cache_size': data['cache_size'],    
+        'max_iter': data['max_iter']      
+    }
+
+    print('Running optuna to find best parameters, could take a few minutes, please wait...')
+    optuna.logging.set_verbosity(optuna.logging.ERROR)
+
+    # study = optuna.create_study(direction="maximize")
+    study = optuna.create_study(
+        direction="maximize", sampler=optuna.samplers.TPESampler(seed=data['random_state']))
+
+    study.optimize(lambda trial: svr_objective(trial, X, y, **data), n_trials=data['n_trials'])
+    best_params = study.best_params
+    model_outputs['best_params'] = best_params
+
+    print('Fitting SVR model with best parameters, please wait ...')
+    fitted_model = SVR(**best_params, **extra_params,
+        ).fit(X,y)
+       
+    # check to see of the model has intercept and coefficients
+    if (hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_') 
+            and fitted_model.coef_.size==len(X.columns)):
+        intercept = fitted_model.intercept_
+        coefficients = fitted_model.coef_
+        # dataframe of model parameters, intercept and coefficients, including zero coefs
+        n_param = 1 + fitted_model.coef_.size               # number of parameters including intercept
+        popt = [['' for i in range(n_param)], np.full(n_param,np.nan)]
+        for i in range(n_param):
+            if i == 0:
+                popt[0][i] = 'Intercept'
+                popt[1][i] = model.intercept_
+            else:
+                popt[0][i] = X.columns[i-1]
+                popt[1][i] = model.coef_[i-1]
+        popt = pd.DataFrame(popt).T
+        popt.columns = ['Feature', 'Parameter']
+        # Table of intercept and coef
+        popt_table = pd.DataFrame({
+                "Feature": popt['Feature'],
+                "Parameter": popt['Parameter']
+            })
+        popt_table.set_index('Feature',inplace=True)
+        model_outputs['popt_table'] = popt_table
+    
+    # Calculate regression statistics
+    y_pred = fitted_model.predict(X)
+    stats = stats_given_y_pred(X,y,y_pred)
+    
+    # model objects and outputs returned by stacking
+    model_outputs['scaler'] = scaler                     # scaler used to standardize X
+    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['y_pred'] = stats['y_pred']
+    model_outputs['residuals'] = stats['residuals']
+    
+    # residual plot for training error
+    if data['verbose'] == 'on':
+        fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
+        PredictionErrorDisplay.from_predictions(
+            y,
+            y_pred=stats['y_pred'],
+            kind="actual_vs_predicted",
+            ax=axs[0]
+        )
+        axs[0].set_title("Actual vs. Predicted")
+        PredictionErrorDisplay.from_predictions(
+            y,
+            y_pred=stats['y_pred'],
+            kind="residual_vs_predicted",
+            ax=axs[1]
+        )
+        axs[1].set_title("Residuals vs. Predicted")
+        fig.suptitle(
+            f"Predictions compared with actual values and residuals (RMSE={stats['RMSE']:.3f})")
+        plt.tight_layout()
+        # plt.show()
+        plt.savefig("SVR_predictions.png", dpi=300)
+    
+    # Make the model_outputs dataframes
+    list1_name = ['r-squared', 'RMSE', 'n_samples']        
+    list1_val = [stats["rsquared"], stats["RMSE"], stats["n_samples"]]
+    
+    stats = pd.DataFrame(
+        {
+            "Statistic": list1_name,
+            "SVR": list1_val
+        }
+        )
+    stats.set_index('Statistic',inplace=True)
+    model_outputs['stats'] = stats
+    print("SVR statistics of fitted model in model_outputs['stats']:")
+    print("\n")
+    print(model_outputs['stats'].to_markdown(index=True))
+    print("\n")
+    if hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_'):
+        print("Parameters of fitted model in model_outputs['popt']:")
+        print("\n")
+        print(model_outputs['popt_table'].to_markdown(index=True))
+        print("\n")
+
+    # Print the run time
+    fit_time = time.time() - start_time
+    print('Done')
+    print(f"Time elapsed: {fit_time:.2f} sec")
+
+    # Restore warnings to normal
+    warnings.filterwarnings("default")
+
+    return fitted_model, model_outputs
+
 def sgd(X, y, **kwargs):
 
     """
