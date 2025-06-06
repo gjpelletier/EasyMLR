@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.36"
+__version__ = "1.1.37"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
@@ -3543,12 +3543,19 @@ def svr_auto(X, y, **kwargs):
         standardize= 'on' (default) or 'off' where
             'on': standardize X using sklearn.preprocessing StandardScaler
             'off': do not standardize X (only used if X is already standardized)
-        n_trials= 50,             # number of optuna trials
-        random_state= 42,         # Random seed for reproducibility.
+        random_state= 42,                 # Random seed for reproducibility.
+        n_trials= 50,                     # number of optuna trials
+        gpu= True,                        # Autodetect to use gpu if present
+        standardize= 'on',
+        verbose= 'on' (default) or 'off'
+
+        # params that are optimized by optuna
         C= [0.1, 1000],           # range of C Regularization parameter. The strength of the regularization is inversely proportional to C. Must be strictly positive. The penalty is a squared l2.
         epsilon= [0.01, 1.0],     # range of epsilon Epsilon in the epsilon-SVR model. Must be non-negative
-        # gamma=[0.0001, 1.0],    # range of gamma values if not using 'scale' or 'auto'
-        gamma='scale',            # {'scale', 'auto'}, default='scale'
+        # gamma= [0.0001, 1.0],   # range of gamma values if not using 'scale' or 'auto'
+        gamma= 'scale',           # {'scale', 'auto'}, default='scale'
+
+        # extra_params that are optional user-specified
         kernel= 'rbf',            # {‘linear’, ‘poly’, ‘rbf’, ‘sigmoid’, ‘precomputed’}, default=’rbf’
         degree= 3,                # Degree of the polynomial kernel function (‘poly’). Must be non-negative. Ignored by all other kernels.
         coef0= 0.0,               # Independent term in kernel function. It is only significant in ‘poly’ and ‘sigmoid’
@@ -3604,15 +3611,19 @@ def svr_auto(X, y, **kwargs):
 
     # Define default values of input data arguments
     defaults = {
-        'gpu': True,                        # Autodetect to use gpu if present
         'random_state': 42,                 # Random seed for reproducibility.
         'n_trials': 50,                     # number of optuna trials
+        'gpu': True,                        # Autodetect to use gpu if present
         'standardize': 'on',
         'verbose': 'on',
+
+        # params for model that are optimized by optuna
         'C': [0.1, 1000],           # range of C Regularization parameter. The strength of the regularization is inversely proportional to C. Must be strictly positive. The penalty is a squared l2.
         'epsilon': [0.01, 1.0],     # range of epsilon Epsilon in the epsilon-SVR model. Must be non-negative
         # 'gamma': [0.0001, 1.0],   # range of gamma values if not using 'scale' or 'auto'
         'gamma': 'scale',           # {'scale', 'auto'}, default='scale'
+
+        # extra_params for model that are optional user-specified
         'kernel': 'rbf',            # {‘linear’, ‘poly’, ‘rbf’, ‘sigmoid’, ‘precomputed’}, default=’rbf’
         'degree': 3,                # Degree of the polynomial kernel function (‘poly’). Must be non-negative. Ignored by all other kernels.
         'coef0': 0.0,               # Independent term in kernel function. It is only significant in ‘poly’ and ‘sigmoid’
@@ -3669,7 +3680,7 @@ def svr_auto(X, y, **kwargs):
     start_time = time.time()
 
     # Set global random seed
-    np.random.seed(42)
+    np.random.seed(data['random_state'])
 
     # check if X contains dummy variables
     X_has_dummies = detect_dummy_variables(X)
@@ -3834,6 +3845,7 @@ def sgd(X, y, **kwargs):
             'on': standardize X using sklearn.preprocessing StandardScaler
             'off': do not standardize X (only used if X is already standardized)
         random_state= (default random_state=42)        - initial random seed
+        verbose= 'on' (default) or 'off'
 
     Standardization is generally recommended
 
@@ -4128,7 +4140,6 @@ def gbr(X, y, **kwargs):
         ccp_alpha=0.0                  # Complexity parameter for Minimal Cost-Complexity Pruning. 
                                        # Default is 0.0.
 
-
     Standardization is generally recommended
 
     RETURNS
@@ -4284,48 +4295,7 @@ def gbr(X, y, **kwargs):
         tol= data['tol'],                      
         ccp_alpha= data['ccp_alpha']                          
         ).fit(X,y)
-    
-    '''
-    # Alternative fitting using cross_validated_model
-    # Initialize the GradientBoostingRegressor
-    model = GradientBoostingRegressor(random_state=data['random_state'])
-    
-    # Clone and fit the model to the entire dataset
-    fitted_model, mean_score = cross_validated_model(
-        model, X, y, cv=data['nfolds'], scoring=data['scoring'])
-    '''
-
-    '''
-    # Alternative fitting looping through random splits to pick best model
-    # fitted_model = GradientBoostingRegressor(random_state=data['random_state']).fit(X,y)
-    # Initialize variables to track the best model
-    best_model = None
-    best_rmse_diff = float('inf')
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42)        
-    # Iterate over the range of random seeds
-    # for n_estimators in n_estimators_range:
-    for seed in range(data['nfolds']):  # loop through random seeds for splitting
-        # random split of train and test subsets
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=seed)        
-        # Create and fit the model
-        model = GradientBoostingRegressor(
-            random_state=data['random_state'])
-        model.fit(X_train, y_train)
-        # Calculate RMSE for training and testing sets
-        train_rmse = np.sqrt(mean_squared_error(y_train, model.predict(X_train)))
-        test_rmse = np.sqrt(mean_squared_error(y_test, model.predict(X_test)))
-        # Calculate the absolute difference between train and test RMSE
-        rmse_diff = abs(train_rmse - test_rmse)
-        print(seed, rmse_diff, best_rmse_diff)
-        # Update the best model if the current one has a smaller RMSE difference
-        if rmse_diff < best_rmse_diff:
-            best_rmse_diff = rmse_diff
-            best_model = model
-    fitted_model = best_model
-    '''
-    
+        
     # check to see of the model has intercept and coefficients
     if (hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_') 
             and fitted_model.coef_.size==len(X.columns)):
@@ -4761,13 +4731,6 @@ def xgb_objective(trial, X, y, **kwargs):
     from sklearn.model_selection import cross_val_score
     from EasyMLR import detect_gpu
 
-    # Detect if the computer has an nvidia gpu, and if so use the gpu
-    use_gpu = detect_gpu()
-    if use_gpu:
-        device = 'gpu'
-    else:
-        device = 'cpu'
-
     # Set global random seed
     np.random.seed(kwargs['random_state'])
     
@@ -4791,8 +4754,27 @@ def xgb_objective(trial, X, y, **kwargs):
         "n_estimators": trial.suggest_int("n_estimators",
             kwargs['n_estimators'][0], kwargs['n_estimators'][1]),
     }    
+
+    extra_params = {
+        random_state= kwargs['random_state'],         
+        device= kwargs['device'],                 
+        verbosity= kwargs['verbosity'],              
+        objective= kwargs['objective'], 
+        booster= kwargs['booster'],          
+        tree_method= kwargs['tree_method'],        
+        nthread= kwargs['nthread'],                  
+        colsample_bylevel= kwargs['colsample_bylevel'],       
+        colsample_bynode= kwargs['colsample_bynode'],        
+        scale_pos_weight= kwargs['scale_pos_weight'],        
+        base_score= kwargs['base_score'],            
+        missing= kwargs['missing'],           
+        importance_type= kwargs['importance_type'],    
+        predictor= kwargs['predictor'],          
+        enable_categorical= kwargs['enable_categorical']  
+    }
+
     # Train model with CV
-    model = xgb.XGBRegressor(**params, random_state=kwargs['random_state'], device=device)
+    model = xgb.XGBRegressor(**params, **extra_params)
     score = cross_val_score(model, X, y, cv=5, scoring="neg_root_mean_squared_error")    
     return np.mean(score)
 
@@ -4820,22 +4802,37 @@ def xgb_auto(X, y, **kwargs):
             'on': standardize X using sklearn.preprocessing StandardScaler
             'off': do not standardize X (only used if X is already standardized)
         gpu= True (default) or False to autodetect if the computer has a gpu and use it
-        'n_trials': 50,                     # number of optuna trials
-        'random_state': 42,                 # Random seed for reproducibility.
-        'verbosity': 1,                     # Verbosity of output 
-                                            # (0 = silent, 1 = warnings, 2 = info).
-        'objective': "reg:squarederror",    # Loss function for regression.
-        'booster': "gbtree",                # Type of booster ('gbtree', 'gblinear', or 'dart').
-        'learning_rate': [0.01, 0.3],       # Range of Step size shrinkage (also called eta).
-        'max_depth': [3, 10],               # Range of Maximum depth of a tree.
-        'min_child_weight': [1, 10],        # Range of Minimum sum of instance weight 
+        n_trials= 50,                     # number of optuna trials
+
+        # params for model to be optimized by optuna:
+        learning_rate= [0.01, 0.3],       # Range of Step size shrinkage (also called eta).
+        max_depth= [3, 10],               # Range of Maximum depth of a tree.
+        min_child_weight= [1, 10],        # Range of Minimum sum of instance weight 
                                             #(hessian) needed in a child.
-        'subsample': [0.5, 1],              # Fraction of samples used for training each tree.
-        'colsample_bytree': [0.5, 1],       # Fraction of features used for each tree.
-        'gamma': [0, 10],                   # Minimum loss reduction to make a split.
-        'reg_lambda': [0, 10],              # L2 regularization term on weights.
-        'alpha': [0, 10],                   # L1 regularization term on weights.
-        'n_estimators': [100, 1000]         # Number of boosting rounds (trees).
+        subsample= [0.5, 1],              # Fraction of samples used for training each tree.
+        colsample_bytree= [0.5, 1],       # Fraction of features used for each tree.
+        gamma= [0, 10],                   # Minimum loss reduction to make a split.
+        reg_lambda= [0, 10],              # L2 regularization term on weights.
+        alpha= [0, 10],                   # L1 regularization term on weights.
+        n_estimators= [100, 1000]         # Number of boosting rounds (trees).
+
+        # extra_params for model that are optional user-specified
+        random_state= 42,           # Random seed for reproducibility.
+        verbosity= 1,               # Verbosity of output 
+                                    # (0 = silent, 1 = warnings, 2 = info).
+        objective= "reg:squarederror",    # Loss function for regression.
+        booster= "gbtree",          # Type of booster ('gbtree', 'gblinear', or 'dart').
+        tree_method= "auto",        # Tree construction algorithm.
+        nthread= -1,                # Number of parallel threads.
+        colsample_bylevel= 1,       # Fraction of features used per tree level.
+        colsample_bynode= 1,        # Fraction of features used per tree node.
+        scale_pos_weight= 1,        # Balancing of positive and negative weights.
+        base_score= 0.5,            # Initial prediction score (global bias).
+        random_state= 42,           # Random seed for reproducibility.
+        missing= np.nan,            # Value in the data to be treated as missing.
+        importance_type= "gain",    # Feature importance type ('weight', 'gain', 'cover', 'total_gain', 'total_cover').
+        predictor= "auto",          # Type of predictor ('cpu_predictor', 'gpu_predictor').
+        enable_categorical= False   # Whether to enable categorical data support.    
 
     Standardization is generally recommended
 
@@ -4887,10 +4884,8 @@ def xgb_auto(X, y, **kwargs):
         'standardize': 'on',
         'verbose': 'on',
         'gpu': True,                        # Autodetect to use gpu if present
-        'random_state': 42,                 # Random seed for reproducibility.
-        'verbosity': 1,                     # Verbosity of output (0 = silent, 1 = warnings, 2 = info).
-        'objective': "reg:squarederror",    # Loss function for regression.
-        'booster': "gbtree",                # Type of booster ('gbtree', 'gblinear', or 'dart').
+
+        # params that are optimized by optuna
         'learning_rate': [0.01, 0.3],       # Step size shrinkage (also called eta).
         'max_depth': [3, 10],               # Maximum depth of a tree.
         'min_child_weight': [1, 10],        # Minimum sum of instance weight (hessian) needed in a child.
@@ -4899,14 +4894,29 @@ def xgb_auto(X, y, **kwargs):
         'gamma': [0, 10],                   # Minimum loss reduction to make a split.
         'reg_lambda': [0, 10],              # L2 regularization term on weights.
         'alpha': [0, 10],                   # L1 regularization term on weights.
-        'n_estimators': [100, 1000]         # Number of boosting rounds (trees).
+        'n_estimators': [100, 1000],         # Number of boosting rounds (trees).
+
+        # extra_params that are optional user-specified
+        'random_state': 42,                 # Random seed for reproducibility.
+        'verbosity': 1,               # Verbosity of output (0 = silent, 1 = warnings, 2 = info).
+        'objective': "reg:squarederror",  # Loss function for regression.
+        'booster': "gbtree",          # Type of booster ('gbtree', 'gblinear', or 'dart').
+        'tree_method': "auto",        # Tree construction algorithm.
+        'nthread': -1,                # Number of parallel threads.
+        'colsample_bylevel': 1,       # Fraction of features used per tree level.
+        'colsample_bynode': 1,        # Fraction of features used per tree node.
+        'scale_pos_weight': 1,        # Balancing of positive and negative weights.
+        'base_score': 0.5,            # Initial prediction score (global bias).
+        'missing': np.nan,            # Value in the data to be treated as missing.
+        'importance_type': "gain",    # Feature importance type ('weight', 'gain', 'cover', 'total_gain', 'total_cover').
+        'predictor': "auto",          # Type of predictor ('cpu_predictor', 'gpu_predictor').
+        'enable_categorical': False   # Whether to enable categorical data support.    
     }
 
     # Update input data argumements with any provided keyword arguments in kwargs
     data = {**defaults, **kwargs}
 
-    # Dictionary to pass to optuna
-
+    # Auto-detect if GPU is present and use GPU if present
     if data['gpu']:
         use_gpu = detect_gpu()
         if use_gpu:
@@ -4949,7 +4959,7 @@ def xgb_auto(X, y, **kwargs):
     start_time = time.time()
 
     # Set global random seed
-    np.random.seed(42)
+    np.random.seed(data['random_state'])
 
     # check if X contains dummy variables
     X_has_dummies = detect_dummy_variables(X)
@@ -4975,17 +4985,22 @@ def xgb_auto(X, y, **kwargs):
     elif data['standardize'] == 'off':
         X = X.copy()
 
-    obj_kwargs = {
-        'random_state': data['random_state'],
-        'learning_rate': data['learning_rate'],
-        'max_depth': data['max_depth'],
-        'min_child_weight': data['min_child_weight'], 
-        'subsample': data['subsample'], 
-        'colsample_bytree': data['colsample_bytree'], 
-        'gamma': data['gamma'],
-        'reg_lambda': data['reg_lambda'], 
-        'alpha': data['alpha'], 
-        'n_estimators': data['n_estimators'] 
+    extra_params = {
+        random_state= data['random_state'],         
+        device= data['device'],                 
+        verbosity= data['verbosity'],              
+        objective= data['objective'], 
+        booster= data['booster'],          
+        tree_method= data['tree_method'],        
+        nthread= data['nthread'],                  
+        colsample_bylevel= data['colsample_bylevel'],       
+        colsample_bynode= data['colsample_bynode'],        
+        scale_pos_weight= data['scale_pos_weight'],        
+        base_score= data['base_score'],            
+        missing= data['missing'],           
+        importance_type= data['importance_type'],    
+        predictor= data['predictor'],          
+        enable_categorical= data['enable_categorical']  
     }
 
     print('Running optuna to find best parameters, could take a few minutes, please wait...')
@@ -4995,18 +5010,12 @@ def xgb_auto(X, y, **kwargs):
     study = optuna.create_study(
         direction="maximize", sampler=optuna.samplers.TPESampler(seed=data['random_state']))
 
-    study.optimize(lambda trial: xgb_objective(trial, X, y, **obj_kwargs), n_trials=data['n_trials'])
+    study.optimize(lambda trial: xgb_objective(trial, X, y, **data), n_trials=data['n_trials'])
     best_params = study.best_params
     model_outputs['best_params'] = best_params
 
     print('Fitting XGBRegressor model with best parameters, please wait ...')
-    fitted_model = XGBRegressor(**best_params,
-        device= data['device'],                 
-        random_state= data['random_state'],         
-        booster= data['booster'],          
-        objective= data['objective'], 
-        verbosity= data['verbosity']              
-        ).fit(X,y)
+    fitted_model = XGBRegressor(**best_params, **extra_params).fit(X,y)
        
     # check to see of the model has intercept and coefficients
     if (hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_') 
@@ -5296,48 +5305,7 @@ def lgbm(X, y, **kwargs):
         # silent= data['silent'],         
         importance_type= data['importance_type'] 
         ).fit(X,y)
-    
-    '''
-    # Alternative fitting using cross_validated_model
-    # Initialize the GradientBoostingRegressor
-    model = GradientBoostingRegressor(random_state=data['random_state'])
-    
-    # Clone and fit the model to the entire dataset
-    fitted_model, mean_score = cross_validated_model(
-        model, X, y, cv=data['nfolds'], scoring=data['scoring'])
-    '''
-
-    '''
-    # Alternative fitting looping through random splits to pick best model
-    # fitted_model = GradientBoostingRegressor(random_state=data['random_state']).fit(X,y)
-    # Initialize variables to track the best model
-    best_model = None
-    best_rmse_diff = float('inf')
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42)        
-    # Iterate over the range of random seeds
-    # for n_estimators in n_estimators_range:
-    for seed in range(data['nfolds']):  # loop through random seeds for splitting
-        # random split of train and test subsets
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=seed)        
-        # Create and fit the model
-        model = GradientBoostingRegressor(
-            random_state=data['random_state'])
-        model.fit(X_train, y_train)
-        # Calculate RMSE for training and testing sets
-        train_rmse = np.sqrt(mean_squared_error(y_train, model.predict(X_train)))
-        test_rmse = np.sqrt(mean_squared_error(y_test, model.predict(X_test)))
-        # Calculate the absolute difference between train and test RMSE
-        rmse_diff = abs(train_rmse - test_rmse)
-        print(seed, rmse_diff, best_rmse_diff)
-        # Update the best model if the current one has a smaller RMSE difference
-        if rmse_diff < best_rmse_diff:
-            best_rmse_diff = rmse_diff
-            best_model = model
-    fitted_model = best_model
-    '''
-    
+        
     # check to see of the model has intercept and coefficients
     if (hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_') 
             and fitted_model.coef_.size==len(X.columns)):
