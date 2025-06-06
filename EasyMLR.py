@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.33"
+__version__ = "1.1.34"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
@@ -4641,7 +4641,7 @@ def xgb_auto(X, y, **kwargs):
         'n_estimators': data['n_estimators'] 
     }
 
-    print('Running optuna to find best parameters, takes a few minutes, please wait...')
+    print('Running optuna to find best parameters, could take a few minutes, please wait...')
     optuna.logging.set_verbosity(optuna.logging.ERROR)
     study = optuna.create_study(direction="maximize")
     study.optimize(lambda trial: xgb_objective(trial, X, y, **obj_kwargs), n_trials=data['n_trials'])
