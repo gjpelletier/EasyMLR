@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.34"
+__version__ = "1.1.35"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
@@ -4427,6 +4427,9 @@ def xgb_objective(trial, X, y, **kwargs):
         device = 'gpu'
     else:
         device = 'cpu'
+
+    # Set global random seed
+    np.random.seed(kwargs['random_state'])
     
     params = {
         "learning_rate": trial.suggest_float("learning_rate",
@@ -4449,7 +4452,7 @@ def xgb_objective(trial, X, y, **kwargs):
             kwargs['n_estimators'][0], kwargs['n_estimators'][1]),
     }    
     # Train model with CV
-    model = xgb.XGBRegressor(**params, random_state=42, device=device)
+    model = xgb.XGBRegressor(**params, random_state=kwargs['random_state'], device=device)
     score = cross_val_score(model, X, y, cv=5, scoring="neg_root_mean_squared_error")    
     return np.mean(score)
 
@@ -4605,6 +4608,9 @@ def xgb_auto(X, y, **kwargs):
     # Set start time for calculating run time
     start_time = time.time()
 
+    # Set global random seed
+    np.random.seed(42)
+
     # check if X contains dummy variables
     X_has_dummies = detect_dummy_variables(X)
 
@@ -4630,6 +4636,7 @@ def xgb_auto(X, y, **kwargs):
         X = X.copy()
 
     obj_kwargs = {
+        'random_state': data['random_state'],
         'learning_rate': data['learning_rate'],
         'max_depth': data['max_depth'],
         'min_child_weight': data['min_child_weight'], 
@@ -4643,7 +4650,11 @@ def xgb_auto(X, y, **kwargs):
 
     print('Running optuna to find best parameters, could take a few minutes, please wait...')
     optuna.logging.set_verbosity(optuna.logging.ERROR)
-    study = optuna.create_study(direction="maximize")
+
+    # study = optuna.create_study(direction="maximize")
+    study = optuna.create_study(
+        direction="maximize", sampler=optuna.samplers.TPESampler(seed=data['random_state']))
+
     study.optimize(lambda trial: xgb_objective(trial, X, y, **obj_kwargs), n_trials=data['n_trials'])
     best_params = study.best_params
     model_outputs['best_params'] = best_params
