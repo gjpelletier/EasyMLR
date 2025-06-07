@@ -156,6 +156,8 @@ Next import the main functions from the EasyMLR module as follows in your notebo
 from EasyMLR import stepwise, lasso, ridge, elastic, xgb, xgb_auto, gbr, lgbm, svr, stacking
 ```
 
+---
+
 ## Example 1. Automatic cross-validated calibration of XGBoost to analyze diabetes data
 
 In this example we will use **xgb_auto** to automatically calibrate the XGBoost parameters using cross-validation. The xgb_auto function standardizes the X values by default. 
@@ -189,6 +191,7 @@ Time elapsed: 335.19 sec
 
 ![XGBRegressor_predictions](https://github.com/user-attachments/assets/6b7b2716-d80a-4607-bd5e-fc0ebe0a61ad)
 
+---
 
 ## Example 2. Automatic cross-validated calibration of SVR to analyze diabetes data
 
@@ -223,6 +226,7 @@ Time elapsed: 8.63 sec
 
 ![SVR_predictions](https://github.com/user-attachments/assets/b4a15cd6-47d7-49d2-9ec4-d6bf677a14c0)
 
+---
 
 ## Example 3. Use Lasso regression to analyze diabetes data
 
@@ -302,6 +306,7 @@ Time elapsed: 1.79 sec
 
 The model_objects and model_outputs returned by the lasso function also contain the best-fit sklearn model objects and many other useful outputs as described by help(lasso). All of the optional arguments for the lasso function are also explained by running help(lasso) 
 
+---
 
 ## Example 4. Use Ridge regression to analyze diabetes data
 
@@ -380,6 +385,7 @@ Time elapsed: 1.75 sec
 
 The RidgeVIF method is able to find a model where all features have acceptable VIF<5, with all VIF values as close as possible to the target VIF (default target VIF=1.0). The model skill for RidgeVIF is similar to the other methods.
 
+---
 
 ## Example 5. Use Elastic Net regression to analyze diabetes data
 
@@ -458,6 +464,7 @@ Time elapsed: 8.83 sec
 
 ![ElasticNetCV_predictions](https://github.com/user-attachments/assets/3dc966a6-56c9-4044-8e86-55c3693a6b60)
 
+---
 
 ## Example 6. Use Stacking regression to analyze diabetes data
 
@@ -512,6 +519,7 @@ Time elapsed: 13.66 sec
 
 ![StackingRegressor_predictions](https://github.com/user-attachments/assets/14a9e6d7-55e9-4a41-834d-9383d10a04b7)
 
+---
 
 ## Example 7. Use Stepwise regression to analyze diabetes data
 
