@@ -171,7 +171,18 @@ X, y = load_diabetes(return_X_y=True, as_frame=True)
 
 # Use the xgb_auto function in the EasyMLR module
 from EasyMLR import xgb_auto
-model_objects, model_outputs = xgb_auto(X, y)
+model_objects, model_outputs = xgb_auto(X, y,
+    # [min, max] range of params that are optimized by optuna
+    learning_rate= [0.01, 0.3],       # step size shrinkage (also called eta)
+    max_depth= [3, 10],               # maximum depth of a tree
+    min_child_weight= [1, 10],        # minimum sum of instance weight (hessian) needed in a child
+    subsample= [0.5, 1],              # fraction of samples used for training each tree
+    colsample_bytree= [0.5, 1],       # fraction of features used for each tree
+    gamma= [0, 10],                   # finimum loss reduction to make a split
+    reg_lambda= [0, 10],              # L2 regularization term on weights
+    alpha= [0, 10],                   # L1 regularization term on weights
+    n_estimators= [100, 1000]         # number of boosting rounds (trees)
+    )
 ```
 
 Running the code above produces the following display of regression statistics:
@@ -207,7 +218,12 @@ X, y = load_diabetes(return_X_y=True, as_frame=True)
 
 # Use the svr_auto function in the EasyMLR module
 from EasyMLR import svr_auto
-model_objects, model_outputs = svr_auto(X, y)
+model_objects, model_outputs = svr_auto(X, y,
+    # [min, max] range of params that are optimized by optuna
+    C= [0.1, 1000],           # C Regularization parameter
+    epsilon= [0.01, 1.0],     # Epsilon in the epsilon-SVR model
+    gamma= 'scale'            # 'scale', 'auto', or [min, max]
+    )
 ```
 
 Running the code above produces the following display of regression statistics:
