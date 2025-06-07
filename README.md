@@ -190,7 +190,41 @@ Time elapsed: 335.19 sec
 ![XGBRegressor_predictions](https://github.com/user-attachments/assets/6b7b2716-d80a-4607-bd5e-fc0ebe0a61ad)
 
 
-## Example 2. Use Lasso regression to analyze diabetes data
+## Example 2. Automatic cross-validated calibration of SVR to analyze diabetes data
+
+In this example we will use **svr_auto** to automatically calibrate the XGBoost parameters using cross-validation. The svr_auto function standardizes the X values by default. 
+
+Run the following code:
+```
+# Read X and y from the sklearn diabetes data set
+from sklearn.datasets import load_diabetes
+X, y = load_diabetes(return_X_y=True, as_frame=True)
+
+# Use the svr_auto function in the EasyMLR module
+from EasyMLR import svr_auto
+model_objects, model_outputs = svr_auto(X, y)
+```
+
+Running the code above produces the following display of regression statistics:
+```
+Running optuna to find best parameters, could take a few minutes, please wait...
+Fitting SVR model with best parameters, please wait ...
+SVR statistics of fitted model in model_outputs['stats']:
+
+| Statistic   |        SVR |
+|:------------|-----------:|
+| r-squared   |   0.564601 |
+| RMSE        |  50.812    |
+| n_samples   | 442        |
+
+Done
+Time elapsed: 8.63 sec
+```
+
+![SVR_predictions](https://github.com/user-attachments/assets/b4a15cd6-47d7-49d2-9ec4-d6bf677a14c0)
+
+
+## Example 3. Use Lasso regression to analyze diabetes data
 
 In this example we will use Lasso regression to analyze the diabetes data available from sklearn. The lasso function uses the sklearn.processing StandardScaler to standardize the X values by default. Then the lasso function uses the standardized X values to find each of the best fit models using LassoCV, LassoLarsCV, LassoLarsIC using AIC, and LassoLarsIC using BIC.
 
@@ -207,15 +241,16 @@ model_objects, model_outputs = lasso(X, y)
 
 Running the code above produces the following display of output tables with regression statistics and best-fit coefficients for each model (LassoCV, LassoLarsCV, LassoLarsIC using AIC, LassoLarsIC using BIC):
 ```
-Lasso regression statistics of best models in model_outputs['stats']:
+Fitting Lasso regression models, please wait ...
 
+Lasso regression statistics of best models in model_outputs['stats']:
 
 | Statistic          |         LassoCV |     LassoLarsCV |    LassoLarsAIC |    LassoLarsBIC |
 |:-------------------|----------------:|----------------:|----------------:|----------------:|
 | alpha              |     1.11865     |     1.10767     |     0.950407    |     0.950407    |
 | r-squared          |     0.512957    |     0.512989    |     0.51341     |     0.51341     |
 | adjusted r-squared |     0.503959    |     0.503991    |     0.50442     |     0.50442     |
-| nobs               |   442           |   442           |   442           |   442           |
+| n_samples          |   442           |   442           |   442           |   442           |
 | df residuals       |   434           |   434           |   434           |   434           |
 | df model           |     7           |     7           |     7           |     7           |
 | F-statistic        |    65.2989      |    65.3073      |    65.4173      |    65.4173      |
@@ -225,9 +260,7 @@ Lasso regression statistics of best models in model_outputs['stats']:
 | AIC                |  4792.36        |  4792.33        |  4790           |  4790           |
 | BIC                |  4825.09        |  4825.06        |  4818.64        |  4818.64        |
 
-
 Coefficients of best models in model_outputs['popt']:
-
 
 | Feature   |   LassoCV |   LassoLarsCV |   LassoLarsAIC |   LassoLarsBIC |
 |:----------|----------:|--------------:|---------------:|---------------:|
@@ -243,10 +276,8 @@ Coefficients of best models in model_outputs['popt']:
 | s5        |  24.2697  |      24.2839  |       24.4841  |       24.4841  |
 | s6        |   2.45869 |       2.46804 |        2.6051  |        2.6051  |
 
-
 Variance Inflation Factors model_outputs['vif']:
 Note: VIF>5 indicates excessive collinearity
-
 
 | Feature   |   LassoCV |   LassoLarsCV |   LassoLarsAIC |   LassoLarsBIC |
 |:----------|----------:|--------------:|---------------:|---------------:|
@@ -261,11 +292,228 @@ Note: VIF>5 indicates excessive collinearity
 | s4        | nan       |     nan       |      nan       |      nan       |
 | s5        |   2.07745 |       2.07745 |        2.07745 |        2.07745 |
 | s6        |   1.45162 |       1.45162 |        1.45162 |        1.45162 |
+
+Done
+Time elapsed: 1.79 sec
 ```
+
+![Lasso_predictions_vs_actual](https://github.com/user-attachments/assets/e60dc714-62f8-4c11-99eb-9d242be769bd)
+![Lasso_predictions_vs_residuals](https://github.com/user-attachments/assets/2963604a-95b9-4cb7-8556-12a9f488bb21)
 
 The model_objects and model_outputs returned by the lasso function also contain the best-fit sklearn model objects and many other useful outputs as described by help(lasso). All of the optional arguments for the lasso function are also explained by running help(lasso) 
 
-## Example 3. Use Stepwise regression to analyze diabetes data
+
+## Example 4. Use Ridge regression to analyze diabetes data
+
+In this example we will use Ridge regression to analyze the diabetes data available from sklearn. The ridge function uses the sklearn.processing StandardScaler to standardize the X values by default. Then the ridge function uses the standardized X values to find each of the best fit models using RidgeCV, and Ridge using AIC, BIC, and VIF for optimization.
+
+Run the following code:
+```
+# Read X and y from the sklearn diabetes data set
+from sklearn.datasets import load_diabetes
+X, y = load_diabetes(return_X_y=True, as_frame=True)
+
+# Use the ridge function in the EasyMLR module
+from EasyMLR import ridge
+model_objects, model_outputs = ridge(X, y)
+```
+
+Running the code above produces the following output display of the best fit model:
+```
+Fitting Ridge regression models, please wait ...
+
+Ridge regression statistics of best models in model_outputs['stats']:
+
+| Statistic          |         RidgeCV |        RidgeVIF |
+|:-------------------|----------------:|----------------:|
+| alpha              |     1.87382     |    53.367       |
+| r-squared          |     0.51733     |     0.511683    |
+| adjusted r-squared |     0.504982    |     0.499191    |
+| n_samples          |   442           |   442           |
+| df residuals       |   431           |   431           |
+| df model           |    10           |    10           |
+| F-statistic        |    46.1949      |    45.1624      |
+| Prob (F-statistic) |     1.11022e-16 |     1.11022e-16 |
+| RMSE               |    53.4993      |    53.8114      |
+| Log-Likelihood     | -2386.18        | -2388.76        |
+| AIC                |  4794.37        |  4799.51        |
+| BIC                |  4839.37        |  4844.51        |
+
+Coefficients of best models in model_outputs['popt']:
+
+| Feature   |    RidgeCV |   RidgeVIF |
+|:----------|-----------:|-----------:|
+| const     | 152.133    | 152.133    |
+| age       |  -0.402061 |   0.132284 |
+| sex       | -11.2811   |  -9.59744  |
+| bmi       |  24.7848   |  22.9527   |
+| bp        |  15.3345   |  14.173    |
+| s1        | -25.6503   |  -3.44889  |
+| s2        |  13.1337   |  -3.5854   |
+| s3        |  -0.47979  |  -9.04181  |
+| s4        |   7.01112  |   5.55365  |
+| s5        |  31.1369   |  20.5852   |
+| s6        |   3.30159  |   4.25116  |
+
+Variance Inflation Factors model_outputs['vif']:
+Note: VIF>5 indicates excessive collinearity
+
+| Feature   |   RidgeCV |   RidgeVIF |
+|:----------|----------:|-----------:|
+| age       |   1.20293 |   0.904903 |
+| sex       |   1.26072 |   0.918176 |
+| bmi       |   1.48134 |   1.02315  |
+| bp        |   1.43679 |   1.00172  |
+| s1        |  26.672   |   0.532883 |
+| s2        |  18.5444  |   0.7917   |
+| s3        |   8.59212 |   1.00853  |
+| s4        |   7.59308 |   1.40875  |
+| s5        |   5.49131 |   1.06848  |
+| s6        |   1.46335 |   1.0328   |
+
+Done
+Time elapsed: 1.75 sec
+```
+
+![Ridge_predicted_vs_actual](https://github.com/user-attachments/assets/d282e056-b0ea-4661-953d-c45c4b8993a3)
+![Ridge_predicted_vs_residuals](https://github.com/user-attachments/assets/98ec5184-6829-4efd-9149-6b21a2289b4c)
+
+The RidgeVIF method is able to find a model where all features have acceptable VIF<5, with all VIF values as close as possible to the target VIF (default target VIF=1.0). The model skill for RidgeVIF is similar to the other methods.
+
+
+## Example 5. Use Elastic Net regression to analyze diabetes data
+
+In this example we will use Elastic Net regression to analyze the diabetes data available from sklearn. The elastic function uses the sklearn.processing StandardScaler to standardize the X values by default. Then the elastic function uses the standardized X values to find the best fit model using ElasticNetCV, and Ridge using MSE as the scoring criterion.
+
+Run the following code:
+```
+# Read X and y from the sklearn diabetes data set
+from sklearn.datasets import load_diabetes
+X, y = load_diabetes(return_X_y=True, as_frame=True)
+
+# Use the elastic function in the EasyMLR module
+from EasyMLR import elastic
+model_objects, model_outputs = elastic(X, y)
+```
+
+Running the code above produces the following output display of the best fit model:
+
+```
+Fitting Elastic Net regression model, please wait ...
+
+ElasticNetCV regression statistics of best model in model_outputs['stats']:
+
+| Statistic          |    ElasticNetCV |
+|:-------------------|----------------:|
+| alpha              |     1.11865     |
+| r-squared          |     0.512957    |
+| adjusted r-squared |     0.503959    |
+| n_samples          |   442           |
+| df residuals       |   434           |
+| df model           |     7           |
+| F-statistic        |    65.2989      |
+| Prob (F-statistic) |     1.11022e-16 |
+| RMSE               |    53.7411      |
+| Log-Likelihood     | -2388.18        |
+| AIC                |  4792.36        |
+| BIC                |  4825.09        |
+| L1-ratio           |     1           |
+
+Coefficients of best model in model_outputs['popt']:
+
+| Feature   |   ElasticNetCV |
+|:----------|---------------:|
+| const     |      152.133   |
+| age       |       -0       |
+| sex       |       -9.11162 |
+| bmi       |       24.8066  |
+| bp        |       13.9806  |
+| s1        |       -4.58713 |
+| s2        |       -0       |
+| s3        |      -10.5553  |
+| s4        |        0       |
+| s5        |       24.2697  |
+| s6        |        2.45869 |
+
+Variance Inflation Factors model_outputs['vif']:
+Note: VIF>5 indicates excessive collinearity
+
+| Feature   |   ElasticNetCV |
+|:----------|---------------:|
+| const     |        1       |
+| age       |      nan       |
+| sex       |        1.25594 |
+| bmi       |        1.49419 |
+| bp        |        1.39388 |
+| s1        |        1.58065 |
+| s2        |      nan       |
+| s3        |        1.66245 |
+| s4        |      nan       |
+| s5        |        2.07745 |
+| s6        |        1.45162 |
+
+Done
+Time elapsed: 8.83 sec
+```
+
+![ElasticNetCV_predictions](https://github.com/user-attachments/assets/3dc966a6-56c9-4044-8e86-55c3693a6b60)
+
+
+## Example 6. Use Stacking regression to analyze diabetes data
+
+In this example we will use Stacking regression to analyze the diabetes data available from sklearn. The **stacking** function uses the sklearn StackingRegressor with an ensemble of models. The **stacking** function standardizes the X values by default. 
+
+Run the following code:
+```
+# Read X and y from the sklearn diabetes data set
+from sklearn.datasets import load_diabetes
+X, y = load_diabetes(return_X_y=True, as_frame=True)
+
+# Use the stacking function in the EasyMLR module
+from EasyMLR import stacking
+model_objects, model_outputs = stacking(X, y)
+```
+
+Running the code above produces the following output display of the best fit model:
+```
+Fitting StackingRegressor models, please wait ...
+
+StackingRegressor statistics of fitted ensemble model in model_outputs['stats']:
+
+| Statistic   |   StackingRegressor |
+|:------------|--------------------:|
+| r-squared   |            0.603124 |
+| RMSE        |           48.5121   |
+| n_samples   |          442        |
+
+Meta-model coefficients of base_regressors in model_outputs['meta_params']:
+
+- positive intercept suggests base models under-predict target
+- negative intercept suggests base models over-predict target
+- positive coefficients have high importance
+- coefficients near zero have low importance
+- negative coefficients have counteracting importance
+
+| Coefficient               |   StackingRegressor |
+|:--------------------------|--------------------:|
+| Intercept                 |          -1.16457   |
+| LassoCV                   |           1.70732   |
+| RidgeCV                   |           0.409702  |
+| ElasticNetCV              |          -1.59604   |
+| SGDRegressor              |           0.195497  |
+| KNeighborsRegressor       |           0.134988  |
+| GradientBoostingRegressor |           0.0692347 |
+| DecisionTreeRegressor     |          -0.0585657 |
+| RandomForestRegressor     |           0.152548  |
+
+Done
+Time elapsed: 13.66 sec
+```
+
+![StackingRegressor_predictions](https://github.com/user-attachments/assets/14a9e6d7-55e9-4a41-834d-9383d10a04b7)
+
+
+## Example 7. Use Stepwise regression to analyze diabetes data
 
 In this example we will use Stepwise regression to analyze the diabetes data available from sklearn.
 
@@ -348,199 +596,6 @@ Note: VIF>5 indicates excessive collinearity
 | bp        | 1.34724 |
 | s3        | 1.45888 |
 | s5        | 1.46057 |
-```
-
-## Example 4. Use Ridge regression to analyze diabetes data
-
-In this example we will use Ridge regression to analyze the diabetes data available from sklearn. The ridge function uses the sklearn.processing StandardScaler to standardize the X values by default. Then the ridge function uses the standardized X values to find each of the best fit models using RidgeCV, and Ridge using AIC, BIC, and VIF for optimization.
-
-Run the following code:
-```
-# Read X and y from the sklearn diabetes data set
-from sklearn.datasets import load_diabetes
-X, y = load_diabetes(return_X_y=True, as_frame=True)
-
-# Use the ridge function in the EasyMLR module
-from EasyMLR import ridge
-model_objects, model_outputs = ridge(X, y)
-```
-
-Running the code above produces the following output display of the best fit model:
-```
-Ridge regression statistics of best models in model_outputs['stats']:
-
-
-| Statistic          |         RidgeCV |        RidgeVIF |
-|:-------------------|----------------:|----------------:|
-| alpha              |     1.87382     |    53.367       |
-| r-squared          |     0.51733     |     0.511683    |
-| adjusted r-squared |     0.504982    |     0.499191    |
-| n_samples          |   442           |   442           |
-| df residuals       |   431           |   431           |
-| df model           |    10           |    10           |
-| F-statistic        |    46.1949      |    45.1624      |
-| Prob (F-statistic) |     1.11022e-16 |     1.11022e-16 |
-| RMSE               |    53.4993      |    53.8114      |
-| Log-Likelihood     | -2386.18        | -2388.76        |
-| AIC                |  4794.37        |  4799.51        |
-| BIC                |  4839.37        |  4844.51        |
-
-
-Coefficients of best models in model_outputs['popt']:
-
-
-| Feature   |    RidgeCV |   RidgeVIF |
-|:----------|-----------:|-----------:|
-| const     | 152.133    | 152.133    |
-| age       |  -0.402061 |   0.132284 |
-| sex       | -11.2811   |  -9.59744  |
-| bmi       |  24.7848   |  22.9527   |
-| bp        |  15.3345   |  14.173    |
-| s1        | -25.6503   |  -3.44889  |
-| s2        |  13.1337   |  -3.5854   |
-| s3        |  -0.47979  |  -9.04181  |
-| s4        |   7.01112  |   5.55365  |
-| s5        |  31.1369   |  20.5852   |
-| s6        |   3.30159  |   4.25116  |
-
-
-Variance Inflation Factors model_outputs['vif']:
-Note: VIF>5 indicates excessive collinearity
-
-
-| Feature   |   RidgeCV |   RidgeVIF |
-|:----------|----------:|-----------:|
-| age       |   1.20293 |   0.904903 |
-| sex       |   1.26072 |   0.918176 |
-| bmi       |   1.48134 |   1.02315  |
-| bp        |   1.43679 |   1.00172  |
-| s1        |  26.672   |   0.532883 |
-| s2        |  18.5444  |   0.7917   |
-| s3        |   8.59212 |   1.00853  |
-| s4        |   7.59308 |   1.40875  |
-| s5        |   5.49131 |   1.06848  |
-| s6        |   1.46335 |   1.0328   |
-```
-
-The VIF results using RidgeCV show substantially reduced multicollinearity (2 features with VIF>10) compared with results of Ridge_AIC and Ridge_BIC (4 features with VIF>10). However, the multicollinearity for RidgeCV, RidgeAIC, and RidgeBIC is excessive. Using AIC and BIC to optimize the ridge regression is especially problematic. This is because AIC and BIC have limited value in optimizing Ridge regression. The lowest AIC and BIC values occur at the lowest vales of alpha, which is similar to performing ordinary linear regression with no regularization and no reduction in VIF. The AIC and BIC in Ridge regression is not sensitive to the alpha parameter because the AIC and BIC values are strongly affected by the number of model parameters. As the alpha parameter is adjusted, the AIC and BIC values change by a relatively small amount depending on the variance of the residuals at each value of alpha. This means that the AIC and BIC values across a wide range of alpha values do not penalize the model for having too many parameters in Ridge regression.
-
-The RidgeVIF method is able to find a model where all features have acceptable VIF<5, with all VIF values as close as possible to the target VIF (default target VIF=1.0). The model skill for RidgeVIF is similar to the other methods.
-
-## Example 5. Use Elastic Net regression to analyze diabetes data
-
-In this example we will use Elastic Net regression to analyze the diabetes data available from sklearn. The elastic function uses the sklearn.processing StandardScaler to standardize the X values by default. Then the elastic function uses the standardized X values to find the best fit model using ElasticNetCV, and Ridge using MSE as the scoring criterion.
-
-Run the following code:
-```
-# Read X and y from the sklearn diabetes data set
-from sklearn.datasets import load_diabetes
-X, y = load_diabetes(return_X_y=True, as_frame=True)
-
-# Use the elastic function in the EasyMLR module
-from EasyMLR import elastic
-model_objects, model_outputs = elastic(X, y)
-```
-
-Running the code above produces the following output display of the best fit model:
-
-```
-ElasticNetCV regression statistics of best model in model_outputs['stats']:
-
-
-| Statistic          |    ElasticNetCV |
-|:-------------------|----------------:|
-| alpha              |     1.11865     |
-| r-squared          |     0.512957    |
-| adjusted r-squared |     0.503959    |
-| nobs               |   442           |
-| df residuals       |   434           |
-| df model           |     7           |
-| F-statistic        |    65.2989      |
-| Prob (F-statistic) |     1.11022e-16 |
-| RMSE               |    53.7411      |
-| Log-Likelihood     | -2388.18        |
-| AIC                |  4792.36        |
-| BIC                |  4825.09        |
-| L1-ratio           |     1           |
-
-
-Coefficients of best models in model_outputs['popt']:
-
-
-| Feature   |   ElasticNetCV |
-|:----------|---------------:|
-| const     |      152.133   |
-| age       |       -0       |
-| sex       |       -9.11162 |
-| bmi       |       24.8066  |
-| bp        |       13.9806  |
-| s1        |       -4.58713 |
-| s2        |       -0       |
-| s3        |      -10.5553  |
-| s4        |        0       |
-| s5        |       24.2697  |
-| s6        |        2.45869 |
-```
-
-Note that for the data in the example, the best fit model from ElasticNetCV was found using L1-ratio=1, which is equivalent to Lasso regression using LassoCV in the lasso function of EasyMLR.
-
-## Example 6. Use Stacking regression to analyze diabetes data
-
-In this example we will use Stacking regression to analyze the diabetes data available from sklearn. The **stacking** function uses the sklearn StackingRegressor with an ensemble of models. The **stacking** function standardizes the X values by default. 
-
-Run the following code:
-```
-# Read X and y from the sklearn diabetes data set
-from sklearn.datasets import load_diabetes
-X, y = load_diabetes(return_X_y=True, as_frame=True)
-
-# Use the stacking function in the EasyMLR module
-from EasyMLR import stacking
-model_objects, model_outputs = stacking(X, y)
-```
-
-Running the code above produces the following output display of the best fit model:
-```
-StackingRegressor statistics of fitted ensemble model in model_outputs['stats']:
-
-
-| Statistic          |   StackingRegressor |
-|:-------------------|--------------------:|
-| r-squared          |         0.572372    |
-| adjusted r-squared |         0.56245     |
-| n_samples          |       442           |
-| df residuals       |       432           |
-| df model           |         9           |
-| F-statistic        |        64.2471      |
-| Prob (F-statistic) |         1.11022e-16 |
-| RMSE               |        50.3566      |
-| Log-Likelihood     |     -2359.43        |
-| AIC                |      4738.85        |
-| BIC                |      4779.77        |
-
-
-Meta-model coefficients of base_regressors in model_outputs['meta_params']:
-
-
-- positive intercept suggests base models under-predict target
-- negative intercept suggests base models over-predict target
-- positive coefficients have high importance
-- coefficients near zero have low importance
-- negative coefficients have counteracting importance
-
-
-| Coefficient               |   StackingRegressor |
-|:--------------------------|--------------------:|
-| Intercept                 |         -79.4182    |
-| LassoCV                   |           1.66162   |
-| RidgeCV                   |           0.0481335 |
-| ElasticNetCV              |          -1.83486   |
-| SGDRegressor              |           0.731691  |
-| KNeighborsRegressor       |           0.112592  |
-| SVR                       |           0.762235  |
-| GradientBoostingRegressor |           0.0743225 |
-| DecisionTreeRegressor     |          -0.0582058 |
-| RandomForestRegressor     |           0.096149  |
 ```
 
 
