@@ -161,7 +161,7 @@ from EasyMLR import stepwise, lasso, ridge, elastic, xgb, xgb_auto, gbr, lgbm, s
 
 ## Example 1. Automatic cross-validated calibration of XGBoost to analyze diabetes data
 
-In this example we will use **xgb_auto** to automatically calibrate the XGBoost parameters using cross-validation. The xgb_auto function standardizes the X values by default. 
+In this example we will use **xgb_auto** to automatically optimize the XGBoost hyperparameters using cross-validation. The xgb_auto function standardizes the X values by default. 
 
 Run the following code:
 ```
@@ -197,7 +197,7 @@ Time elapsed: 335.19 sec
 
 ## Example 2. Automatic cross-validated calibration of SVR to analyze diabetes data
 
-In this example we will use **svr_auto** to automatically calibrate the XGBoost parameters using cross-validation. The svr_auto function standardizes the X values by default. 
+In this example we will use **svr_auto** to automatically optimize the XGBoost hyperparameters using cross-validation. The svr_auto function standardizes the X values by default. 
 
 Run the following code:
 ```
