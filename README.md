@@ -5,9 +5,9 @@ The EasyMLR module includes the following main Python functions to facilitate th
  - **lasso** - LassoCV, LassoLarsCV, and LassoLarsIC using AIC/BIC
  - **ridge** - RidgeCV and Ridge using VIF
  - **elastic** - ElasticNetCV
- - **xgb_auto** - XGBoostRegressor with automatic cross-validated calibration of the best hyper-parameters
+ - **xgb_auto** - XGBoostRegressor with automatic cross-validated optimization of the hyperparameters
  - **xgb** - XGBoostRegressor with user-specified hyper-parameters
- - **svr_auto** - SVR with automatic cross-validated calibration of the best hyper-parameters
+ - **svr_auto** - SVR with automatic cross-validated optimization of the hyperparameters
  - **svr** - SVR with user-specified hyper-parameters
  - **gbr** - GradientBoostingRegressor with user-specified hyper-parameters
  - **lgbm** - LGBMRegressor with user-specified hyper-parameters
