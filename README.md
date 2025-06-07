@@ -6,11 +6,11 @@ The EasyMLR module includes the following main Python functions to facilitate th
  - **ridge** - RidgeCV and Ridge using VIF
  - **elastic** - ElasticNetCV
  - **xgb_auto** - XGBoostRegressor with automatic cross-validated optimization of the hyperparameters
- - **xgb** - XGBoostRegressor with user-specified hyper-parameters
+ - **xgb** - XGBoostRegressor with user-specified hyperparameters
  - **svr_auto** - SVR with automatic cross-validated optimization of the hyperparameters
- - **svr** - SVR with user-specified hyper-parameters
- - **gbr** - GradientBoostingRegressor with user-specified hyper-parameters
- - **lgbm** - LGBMRegressor with user-specified hyper-parameters
+ - **svr** - SVR with user-specified hyperparameters
+ - **gbr** - GradientBoostingRegressor with user-specified hyperparameters
+ - **lgbm** - LGBMRegressor with user-specified hyperparameters
  - **stacking** - StackingRegressor
  - **stepwise** - Stepwise multiple linear regression to minimize MSE, AIC, or BIC
  
