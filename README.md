@@ -159,7 +159,7 @@ from EasyMLR import stepwise, lasso, ridge, elastic, xgb, xgb_auto, gbr, lgbm, s
 
 ---
 
-## Example 1. Automatic cross-validated optimization of XGBoost hyperparamters
+## Example 1. Automatic cross-validated optimization of XGBoost hyperparameters
 
 In this example we will use **xgb_auto** to automatically optimize the XGBoost hyperparameters using cross-validation. The xgb_auto function standardizes the X values by default. 
 
