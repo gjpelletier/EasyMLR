@@ -173,14 +173,21 @@ model_objects, model_outputs = xgb_auto(X, y)
 
 Running the code above produces the following display of regression statistics:
 ```
+Running optuna to find best parameters, could take a few minutes, please wait...
+Fitting XGBRegressor model with best parameters, please wait ...
+XGBRegressor statistics of fitted model in model_outputs['stats']:
+
 | Statistic   |   XGBRegressor |
 |:------------|---------------:|
-| r-squared   |       0.713027 |
-| RMSE        |      41.2519   |
+| r-squared   |       0.751082 |
+| RMSE        |      38.4195   |
 | n_samples   |     442        |
+
+Done
+Time elapsed: 335.19 sec
 ```
 
-![XGBRegressor_predictions](https://github.com/user-attachments/assets/37834bd8-36d1-4b69-8992-49ec70411882)
+![XGBRegressor_predictions](https://github.com/user-attachments/assets/6b7b2716-d80a-4607-bd5e-fc0ebe0a61ad)
 
 
 ## Example 2. Use Lasso regression to analyze diabetes data
