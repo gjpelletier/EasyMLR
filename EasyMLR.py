@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.41"
+__version__ = "1.1.42"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
@@ -3478,7 +3478,7 @@ def svr_objective(trial, X, y, **kwargs):
     '''
     import numpy as np
     # import xgboost as xgb
-    from sklearn.model_selection import cross_val_score
+    from sklearn.model_selection import cross_val_score, KFold
     from EasyMLR import detect_gpu
     from sklearn.svm import SVR
 
@@ -3514,9 +3514,13 @@ def svr_objective(trial, X, y, **kwargs):
         'max_iter': kwargs['max_iter']      
     }
 
+    cv = KFold(n_splits=kwargs['n_splits'], 
+        shuffle=True, 
+        random_state=kwargs['random_state'])
+
     # Train model with CV
     model = SVR(**params, **extra_params)
-    score = cross_val_score(model, X, y, cv=5, scoring="neg_root_mean_squared_error")    
+    score = cross_val_score(model, X, y, cv=cv, scoring="neg_root_mean_squared_error")    
     return np.mean(score)
 
 def svr_auto(X, y, **kwargs):
@@ -3544,6 +3548,7 @@ def svr_auto(X, y, **kwargs):
             'off': do not standardize X (only used if X is already standardized)
         random_state= 42,                 # Random seed for reproducibility.
         n_trials= 50,                     # number of optuna trials
+        n_splits= 5,                      # number of splits for KFold CV
         gpu= True,                        # Autodetect to use gpu if present
         standardize= 'on',
         verbose= 'on' (default) or 'off'
@@ -3619,6 +3624,7 @@ def svr_auto(X, y, **kwargs):
     defaults = {
         'random_state': 42,                 # Random seed for reproducibility.
         'n_trials': 50,                     # number of optuna trials
+        'n_splits': 5,          # number of splits for KFold CV
         'gpu': True,                        # Autodetect to use gpu if present
         'standardize': 'on',
         'verbose': 'on',
@@ -5142,7 +5148,7 @@ def xgb_objective(trial, X, y, **kwargs):
     '''
     import numpy as np
     import xgboost as xgb
-    from sklearn.model_selection import cross_val_score
+    from sklearn.model_selection import cross_val_score, KFold
     from EasyMLR import detect_gpu
 
     # Set global random seed
@@ -5187,9 +5193,13 @@ def xgb_objective(trial, X, y, **kwargs):
         'enable_categorical': kwargs['enable_categorical']  
     }
 
+    cv = KFold(n_splits=kwargs['n_splits'], 
+        shuffle=True, 
+        random_state=kwargs['random_state'])
+
     # Train model with CV
     model = xgb.XGBRegressor(**params, **extra_params)
-    score = cross_val_score(model, X, y, cv=5, scoring="neg_root_mean_squared_error")    
+    score = cross_val_score(model, X, y, cv=cv, scoring="neg_root_mean_squared_error")    
     return np.mean(score)
 
 def xgb_auto(X, y, **kwargs):
@@ -5217,6 +5227,7 @@ def xgb_auto(X, y, **kwargs):
             'off': do not standardize X (only used if X is already standardized)
         gpu= True (default) or False to autodetect if the computer has a gpu and use it
         n_trials= 50,                     # number of optuna trials
+        n_splits= 5,                      # number of splits for KFold CV
 
         # [min, max] ranges of params for model to be optimized by optuna:
         learning_rate= [0.01, 0.3],       # Step size shrinkage (also called eta).
@@ -5298,6 +5309,7 @@ def xgb_auto(X, y, **kwargs):
         'standardize': 'on',
         'verbose': 'on',
         'gpu': True,                        # Autodetect to use gpu if present
+        'n_splits': 5,          # number of splits for KFold CV
 
         # params that are optimized by optuna
         'learning_rate': [0.01, 0.3],       # Step size shrinkage (also called eta).
