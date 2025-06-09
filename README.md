@@ -1,12 +1,14 @@
 # Tools for Machine Learning Regression in Python
 
-The EasyMLR module includes the following main Python functions to facilitate the use of sklearn, XGBoost, LightGBM, statsmodels, and optuna solvers: 
+The EasyMLR module includes the following main Python functions to facilitate the use of sklearn, XGBoost, CatBoost, LightGBM, statsmodels, and optuna solvers: 
  
  - **lasso** - LassoCV, LassoLarsCV, and LassoLarsIC using AIC/BIC
  - **ridge** - RidgeCV and Ridge using VIF
  - **elastic** - ElasticNetCV
  - **xgb_auto** - XGBoostRegressor with automatic cross-validated optimization of the hyperparameters
  - **xgb** - XGBoostRegressor with user-specified hyperparameters
+ - **catboost_auto** - CatBoostRegressor with automatic cross-validated optimization of the hyperparameters
+ - **catboost** - CatBoostRegressor with user-specified hyperparameters
  - **gbr_auto** - GradientBoostingRegressor with automatic cross-validated optimization of the hyperparameters
  - **gbr** - GradientBoostingRegressor with user-specified hyperparameters
  - **svr_auto** - SVR with automatic cross-validated optimization of the hyperparameters
@@ -23,7 +25,7 @@ The functions in EasyMLR allow the user to write one line of python code to prov
 - variance  inflation factors (if applicable)
 - plots of predicted vs actual and predicted vs residuals
 - figures showing other diagnostic descriptions of the analysis if applicable (e.g. coefficients vs alpha, MSE vs alpha, AIC and BIC vs alpha)
-- automatic cross-validated optimization of hyperparameters (XGBoost, GradientBoostingRegressor, and SVR)
+- automatic cross-validated optimization of hyperparameters (XGBoost, CatBoost, GradientBoostingRegressor, and SVR)
 - sutomatic standardization of X and output of the scaler (optional)
 - automatic detection and use of GPU for 10x faster computations (XGBoost only)
 
