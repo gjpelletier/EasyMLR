@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.43"
+__version__ = "1.1.44"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
@@ -5834,6 +5834,302 @@ def lgbm(X, y, **kwargs):
 
     return fitted_model, model_outputs
 
+def catboost(X, y, **kwargs):
+
+    """
+    CatboostRegressor linear regression
+    Beta version
+
+    by
+    Greg Pelletier
+    gjpelletier@gmail.com
+    08-Jun-2025
+
+    REQUIRED INPUTS (X and y should have same number of rows and 
+    only contain real numbers)
+    X = dataframe of the candidate independent variables 
+        (as many columns of data as needed)
+    y = dataframe of the dependent variable (one column of data)
+
+    OPTIONAL KEYWORD ARGUMENTS
+    **kwargs (optional keyword arguments):
+        random_state= 42,    # initial random seed
+        standardize= 'on',    # standardize X
+        verbose= 'on',        # 'on' to display summary stats and residual plots
+        gpu= False,           # Autodetect to use gpu if present
+        n_jobs= 1,            # number of CPU cores to use for optuna 
+                              # n_jobs=1 is reproducible 
+                              # n_jobs-1 uses all cores but is not reproducible
+        
+        # [min, max] range of params optimized by optuna
+        learning_rate= [0.01, 0.3],         # Balances step size in gradient updates.
+        depth= [4, 10],                     # Controls tree depth
+        iterations= [100, 3000],            # Number of boosting iterations
+        l2_leaf_reg= [1, 10],               # Regularization strength       
+        random_strength= [0, 1],            # Adds noise for diversity
+        bagging_temperature= [0.1, 1.0],    # Controls randomness in sampling
+        border_count= [32, 255],            # Number of bins for feature discretization
+        min_data_in_leaf= [1, 100],         # Minimum samples per leaf         
+        max_bin= [64, 255],                 # Number of bins for feature quantization
+
+        # categorical params optimized by optuna
+        use_border_count= [True, False]     # True = use border_count 
+                                            # (best for categorical features)
+                                            # False = use max_bin 
+                                            # (best for continuous features)
+
+    Standardization is generally recommended
+
+    RETURNS
+        model_objects, model_outputs
+            model_objects is the fitted model object 
+            model_outputs is a dictionary of the following outputs: 
+                - 'scaler': sklearn.preprocessing StandardScaler for X
+                - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'y_pred': Predicted y values
+                - 'residuals': Residuals (y-y_pred) for each of the four methods
+                - 'stats': Regression statistics for each model
+
+    NOTE
+    Do any necessary/optional cleaning of the data before 
+    passing the data to this function. X and y should have the same number of rows
+    and contain only real numbers with no missing values. X can contain as many
+    columns as needed, but y should only be one column. X should have unique
+    column names for for each column
+
+    EXAMPLE 
+    model_objects, model_outputs = gbr(X, y)
+
+    """
+
+    from EasyMLR import stats_given_y_pred, detect_dummy_variables
+    import time
+    import pandas as pd
+    import numpy as np
+    from sklearn.ensemble import GradientBoostingRegressor
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.model_selection import cross_val_score, train_test_split
+    from sklearn.metrics import mean_squared_error
+    from sklearn.base import clone
+    from sklearn.metrics import PredictionErrorDisplay
+    from sklearn.model_selection import train_test_split
+    import matplotlib.pyplot as plt
+    import warnings
+    import sys
+    import statsmodels.api as sm
+    from catboost import CatBoostRegressor
+    
+    # Define default values of input data arguments
+    defaults = {
+        'random_state': 42,     # Random seed for reproducibility.
+        'standardize': 'on',    # standardize X
+        'verbose': 'on',        # 'on' to display stats and residual plots
+        'gpu': False,           # Autodetect to use gpu if present
+        'devices': '0',           # Which GPU to use (0 to use first GPU)
+
+        # [min, max] range of params optimized by optuna
+        'learning_rate': 0.03,         # Balances step size in gradient updates.
+        'depth': 6,                    # Controls tree depth
+        'iterations': 1000,            # Number of boosting iterations
+        'l2_leaf_reg': 3,              # Regularization strength       
+        'random_strength': 1.0,        # Adds noise for diversity
+        'bagging_temperature': 1.0,    # Controls randomness in sampling
+        'min_data_in_leaf': 1,         # Minimum samples per leaf         
+        'border_count': 128,           # Number of bins for feature discretization
+        'max_bin': 255,                # Number of bins for feature quantization
+        'use_border_count': True       # True: border_count, False: max_bin
+    }
+
+    # Update input data argumements with any provided keyword arguments in kwargs
+    data = {**defaults, **kwargs}
+
+    # Auto-detect if GPU is present and use GPU if present
+    if data['gpu']:
+        use_gpu = detect_gpu()
+        if use_gpu:
+            data['device'] = 'GPU'
+        else:
+            data['device'] = 'CPU'
+    else:
+        data['device'] = 'CPU'
+    
+    # check for input errors
+    ctrl = isinstance(X, pd.DataFrame)
+    if not ctrl:
+        print('Check X: it needs to be pandas dataframes!','\n')
+        sys.exit()
+    ctrl = (X.index == y.index).all()
+    if not ctrl:
+        print('Check X and y: they need to have the same index values!','\n')
+        sys.exit()
+    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
+    if not ctrl:
+        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
+        sys.exit()
+    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
+    if not ctrl:
+        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        sys.exit()
+    ctrl = X.shape[0] == y.shape[0]
+    if not ctrl:
+        print('Check X and y: X and y need to have the same number of rows!','\n')
+        sys.exit()
+    ctrl = X.columns.is_unique
+    if not ctrl:
+        print('Check X: X needs to have unique column names for every column!','\n')
+        sys.exit()
+
+    # Suppress warnings
+    warnings.filterwarnings('ignore')
+    print('Fitting CatBoostRegressor model, please wait ...')
+    if data['verbose'] == 'on':
+        print("\n")
+
+    # Set start time for calculating run time
+    start_time = time.time()
+
+    # check if X contains dummy variables
+    X_has_dummies = detect_dummy_variables(X)
+
+    # Initialize output dictionaries
+    model_objects = {}
+    model_outputs = {}
+
+    # Standardized X (X_scaled)
+    scaler = StandardScaler().fit(X)
+    X_scaled = scaler.transform(X)
+    # Convert scaled arrays into pandas dataframes with same column names as X
+    X_scaled = pd.DataFrame(X_scaled, columns=X.columns)
+    # Copy index from unscaled to scaled dataframes
+    X_scaled.index = X.index
+    # model_outputs['X_scaled'] = X_scaled                 # standardized X
+    model_outputs['scaler'] = scaler                     # scaler used to standardize X
+    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+
+    # Specify X to be used for fitting the models 
+    if data['standardize'] == 'on':
+        X = X_scaled.copy()
+    elif data['standardize'] == 'off':
+        X = X.copy()
+
+    params = {        
+        # [min, max] range of params optimized by optuna
+        'learning_rate': data['learning_rate'],
+        'depth': data['depth'],                    # Controls tree depth
+        'iterations': data['iterations'],            # Number of boosting iterations
+        'l2_leaf_reg': data['l2_leaf_reg'],              # Regularization strength       
+        'random_strength': data['random_strength'],        # Adds noise for diversity
+        'bagging_temperature': data['bagging_temperature'],    # Controls randomness in sampling
+        'min_data_in_leaf': data['min_data_in_leaf'],         # Minimum samples per leaf         
+    }
+
+    if data['use_border_count']:
+        params['border_count'] = data['border_count']
+    else:
+        params['max_bin'] = data['max_bin']
+            
+    extra_params = {
+        'random_seed': data['random_state'],         
+        'task_type': data['device']                   
+    }
+
+    if data['device'] == 'GPU':
+        extra_params['devices'] = data['devices']
+    
+    fitted_model = CatBoostRegressor(
+        **params, **extra_params, verbose=False).fit(X,y)
+        
+    # check to see of the model has intercept and coefficients
+    if (hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_') 
+            and fitted_model.coef_.size==len(X.columns)):
+        intercept = fitted_model.intercept_
+        coefficients = fitted_model.coef_
+        # dataframe of model parameters, intercept and coefficients, including zero coefs
+        n_param = 1 + fitted_model.coef_.size               # number of parameters including intercept
+        popt = [['' for i in range(n_param)], np.full(n_param,np.nan)]
+        for i in range(n_param):
+            if i == 0:
+                popt[0][i] = 'Intercept'
+                popt[1][i] = model.intercept_
+            else:
+                popt[0][i] = X.columns[i-1]
+                popt[1][i] = model.coef_[i-1]
+        popt = pd.DataFrame(popt).T
+        popt.columns = ['Feature', 'Parameter']
+        # Table of intercept and coef
+        popt_table = pd.DataFrame({
+                "Feature": popt['Feature'],
+                "Parameter": popt['Parameter']
+            })
+        popt_table.set_index('Feature',inplace=True)
+        model_outputs['popt_table'] = popt_table
+    
+    # Calculate regression statistics
+    y_pred = fitted_model.predict(X)
+    stats = stats_given_y_pred(X,y,y_pred)
+    
+    # model objects and outputs returned by stacking
+    model_outputs['scaler'] = scaler                     # scaler used to standardize X
+    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['y_pred'] = stats['y_pred']
+    model_outputs['residuals'] = stats['residuals']
+    # model_objects = model
+    
+    # residual plot for training error
+    if data['verbose'] == 'on':
+        fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
+        PredictionErrorDisplay.from_predictions(
+            y,
+            y_pred=stats['y_pred'],
+            kind="actual_vs_predicted",
+            ax=axs[0]
+        )
+        axs[0].set_title("Actual vs. Predicted")
+        PredictionErrorDisplay.from_predictions(
+            y,
+            y_pred=stats['y_pred'],
+            kind="residual_vs_predicted",
+            ax=axs[1]
+        )
+        axs[1].set_title("Residuals vs. Predicted")
+        fig.suptitle(
+            f"Predictions compared with actual values and residuals (RMSE={stats['RMSE']:.3f})")
+        plt.tight_layout()
+        # plt.show()
+        plt.savefig("CatBoostRegressor_predictions.png", dpi=300)
+    
+    # Make the model_outputs dataframes
+    list1_name = ['r-squared', 'RMSE', 'n_samples']        
+    list1_val = [stats["rsquared"], stats["RMSE"], stats["n_samples"]]
+    
+    stats = pd.DataFrame(
+        {
+            "Statistic": list1_name,
+            "CatBoostRegressor": list1_val
+        }
+        )
+    stats.set_index('Statistic',inplace=True)
+    model_outputs['stats'] = stats
+    print("CatBoostRegressor statistics of fitted model in model_outputs['stats']:")
+    print("\n")
+    print(model_outputs['stats'].to_markdown(index=True))
+    print("\n")
+    if hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_'):
+        print("Parameters of fitted model in model_outputs['popt']:")
+        print("\n")
+        print(model_outputs['popt_table'].to_markdown(index=True))
+        print("\n")
+
+    # Print the run time
+    fit_time = time.time() - start_time
+    print('Done')
+    print(f"Time elapsed: {fit_time:.2f} sec")
+
+    # Restore warnings to normal
+    warnings.filterwarnings("default")
+
+    return fitted_model, model_outputs
+
 def catboost_objective(trial, X, y, **kwargs):
     '''
     Objective function used by optuna 
@@ -5930,7 +6226,7 @@ def catboost_auto(X, y, **kwargs):
         standardize= 'on',    # standardize X
         verbose= 'on',        # 'on' to display summary stats and residual plots
         n_splits= 5,          # number of splits for KFold CV
-        gpu= True,            # Autodetect to use gpu if present
+        gpu= False,           # Autodetect to use gpu if present
         n_jobs= 1,            # number of CPU cores to use for optuna 
                               # n_jobs=1 is reproducible 
                               # n_jobs-1 uses all cores but is not reproducible
@@ -6111,11 +6407,7 @@ def catboost_auto(X, y, **kwargs):
     model_outputs['best_params'] = best_params
 
     print('Fitting CatBoostRegressor model with best parameters, please wait ...')
-
     del best_params['use_border_count']
-    # print('best_params: \n',best_params)
-    # print('extra_params: \n',extra_params)
-
     fitted_model = CatBoostRegressor(**best_params, **extra_params, verbose=False).fit(X,y)
        
     # check to see of the model has intercept and coefficients
