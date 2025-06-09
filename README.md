@@ -142,7 +142,7 @@ The **ridge** function in EasyMLR includes an algorithm (RidgeVIF) to find the m
 
 ## Installation for Python or Jupyter Notebook
 
-The EasyMLR module require that you have already installed numpy, pandas, scikit-learn, tabulate, matplotlib, statsmodels, xgboost, lightgbm, mlxtend, and optuna packages. 
+The EasyMLR module require that you have already installed numpy, pandas, scikit-learn, tabulate, matplotlib, statsmodels, xgboost, lightgbm, mlxtend, and optuna packages. In addition, the auto-optimization functions, because they use optuna, require that you have already installed and enabled ipywidgets in your Python environment if you are working in a Jupyter notebook. 
 
 If you have not already installed EasyMLR, enter the following with pip or !pip in your notebook or terminal:<br>
 ```
@@ -156,7 +156,12 @@ pip install git+https://github.com/gjpelletier/EasyMLR.git --upgrade
 
 Next import the main functions from the EasyMLR module as follows in your notebook or python code:<br>
 ```
-from EasyMLR import stepwise, lasso, ridge, elastic, xgb, xgb_auto, gbr, lgbm, svr, stacking
+from EasyMLR import lasso, ridge, elastic
+from EasyMLR import xgb, xgb_auto
+from EasyMLR import catboost, catboost_auto,
+from EasyMLR import gbr, gbr_auto,
+from EasyMLR import svr, svr_auto,
+from EasyMLR import lgbm, stacking, stepwise
 ```
 
 
