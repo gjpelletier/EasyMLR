@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.46"
+__version__ = "1.1.47"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
@@ -3807,7 +3807,7 @@ def svr_auto(X, y, **kwargs):
     model_outputs['residuals'] = stats['residuals']
     
     # residual plot for training error
-    if data['verbose'] == 'on' data['verbose'] == 1:
+    if data['verbose'] == 'on' or data['verbose'] == 1:
         fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
         PredictionErrorDisplay.from_predictions(
             y,
@@ -6559,7 +6559,7 @@ def catboost_auto(X, y, **kwargs):
     # model_objects = model
     
     # residual plot for training error
-    if data['verbose'] == 'on' data['verbose'] == 1:
+    if data['verbose'] == 'on' or data['verbose'] == 1:
         fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
         PredictionErrorDisplay.from_predictions(
             y,
