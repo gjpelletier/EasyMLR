@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.44"
+__version__ = "1.1.45"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
@@ -5857,9 +5857,7 @@ def catboost(X, y, **kwargs):
         standardize= 'on',    # standardize X
         verbose= 'on',        # 'on' to display summary stats and residual plots
         gpu= False,           # Autodetect to use gpu if present
-        n_jobs= 1,            # number of CPU cores to use for optuna 
-                              # n_jobs=1 is reproducible 
-                              # n_jobs-1 uses all cores but is not reproducible
+        thread_count= -1,     # number of CPU cores to use (-1 for all cores)
         
         # [min, max] range of params optimized by optuna
         learning_rate= [0.01, 0.3],         # Balances step size in gradient updates.
@@ -5925,7 +5923,8 @@ def catboost(X, y, **kwargs):
         'standardize': 'on',    # standardize X
         'verbose': 'on',        # 'on' to display stats and residual plots
         'gpu': False,           # Autodetect to use gpu if present
-        'devices': '0',           # Which GPU to use (0 to use first GPU)
+        'devices': '0',         # Which GPU to use (0 to use first GPU)
+        'thread_count': -1,     # number of CPUs to use (-1 for all cores)
 
         # [min, max] range of params optimized by optuna
         'learning_rate': 0.03,         # Balances step size in gradient updates.
@@ -6035,6 +6034,8 @@ def catboost(X, y, **kwargs):
 
     if data['device'] == 'GPU':
         extra_params['devices'] = data['devices']
+    else:
+        extra_params['thread_count'] = data['thread_count']
     
     fitted_model = CatBoostRegressor(
         **params, **extra_params, verbose=False).fit(X,y)
@@ -6192,6 +6193,8 @@ def catboost_objective(trial, X, y, **kwargs):
 
     if kwargs['device'] == 'GPU':
         extra_params['devices'] = kwargs['devices']
+    else:
+        extra_params['thread_count'] = kwargs['thread_count']
     
     cv = KFold(n_splits=kwargs['n_splits'], 
         shuffle=True, 
@@ -6227,9 +6230,7 @@ def catboost_auto(X, y, **kwargs):
         verbose= 'on',        # 'on' to display summary stats and residual plots
         n_splits= 5,          # number of splits for KFold CV
         gpu= False,           # Autodetect to use gpu if present
-        n_jobs= 1,            # number of CPU cores to use for optuna 
-                              # n_jobs=1 is reproducible 
-                              # n_jobs-1 uses all cores but is not reproducible
+        thread_count= -1,     # number of CPU cores to use (-1 for all cores)
         
         # [min, max] range of params optimized by optuna
         learning_rate= [0.01, 0.3],         # Balances step size in gradient updates.
@@ -6301,7 +6302,8 @@ def catboost_auto(X, y, **kwargs):
         'verbose': 'on',        # 'on' to display stats and residual plots
         'gpu': False,           # Autodetect to use gpu if present
         'n_splits': 5,          # number of splits for KFold CV
-        'devices': '0',           # Which GPU to use (0 to use first GPU)
+        'devices': '0',         # Which GPU to use (0 to use first GPU)
+        'thread_count': -1,     # number of CPUs to use (-1 for all cores)
 
         # [min, max] range of params optimized by optuna
         'learning_rate': [0.01, 0.3],         # Balances step size in gradient updates.
@@ -6394,6 +6396,8 @@ def catboost_auto(X, y, **kwargs):
 
     if data['device'] == 'GPU':
         extra_params['devices'] = data['devices']
+    else:
+        extra_params['thread_count'] = data['thread_count']
 
     print('Running optuna to find best parameters, could take a few minutes, please wait...')
     optuna.logging.set_verbosity(optuna.logging.ERROR)
