@@ -209,7 +209,56 @@ Time elapsed: 335.19 sec
 
 ---
 
-## Example 2. Automatic cross-validated optimization of GradientBoostingRegressor hyperparameters
+## Example 2. Automatic cross-validated optimization of CatBoost hyperparameters
+
+In this example we will use **catboost_auto** to automatically optimize the CatBoost hyperparameters using cross-validation. The catboost_auto function standardizes the X values by default. 
+
+Run the following code:
+```
+# Read X and y from the sklearn diabetes data set
+from sklearn.datasets import load_diabetes
+X, y = load_diabetes(return_X_y=True, as_frame=True)
+
+# Use the catboost_auto function in the EasyMLR module
+from EasyMLR import catboost_auto
+model_objects, model_outputs = catboost_auto(X, y,
+    # [min, max] range of params that are optimized by optuna
+    random_state= 42,                 # random seed for reproducibility
+    n_trials= 50,                     # number of optuna trials
+    learning_rate= [0.01, 0.3],       # Balances step size in gradient updates.
+    depth= [4, 10],                   # Controls tree depth
+    iterations= [100, 3000],          # Number of boosting iterations
+    l2_leaf_reg= [1, 10],             # Regularization strength       
+    random_strength= [0, 1],          # Adds noise for diversity
+    bagging_temperature= [0.1, 1.0],  # Controls randomness in sampling
+    border_count= [32, 255],          # Number of bins for feature discretization
+    min_data_in_leaf= [1, 100],       # Minimum samples per leaf         
+    max_bin= [64, 255],               # Number of bins for feature quantization
+    )
+```
+
+Running the code above produces the following display of regression statistics:
+```
+Running optuna to find best parameters, could take a few minutes, please wait...
+Fitting CatBoostRegressor model with best parameters, please wait ...
+CatBoostRegressor statistics of fitted model in model_outputs['stats']:
+
+| Statistic   |   CatBoostRegressor |
+|:------------|--------------------:|
+| r-squared   |            0.740263 |
+| RMSE        |           39.2455   |
+| n_samples   |          442        |
+
+Done
+Time elapsed: 859.84 sec
+```
+
+![CatBoostRegressor_predictions](https://github.com/user-attachments/assets/2daf64fe-8a16-49a7-b3a6-d623cea1501d)
+
+
+---
+
+## Example 3. Automatic cross-validated optimization of GradientBoostingRegressor hyperparameters
 
 In this example we will use **gbr_auto** to automatically optimize the GradientBoostingRegressor hyperparameters using cross-validation. The gbr_auto function standardizes the X values by default. 
 
@@ -256,7 +305,7 @@ Time elapsed: 97.19 sec
 
 ---
 
-## Example 3. Automatic cross-validated optimization of SVR hyperparameters
+## Example 4. Automatic cross-validated optimization of SVR hyperparameters
 
 In this example we will use **svr_auto** to automatically optimize the XGBoost hyperparameters using cross-validation. The svr_auto function standardizes the X values by default. 
 
@@ -297,7 +346,7 @@ Time elapsed: 8.63 sec
 
 ---
 
-## Example 4. Use Lasso regression to analyze diabetes data
+## Example 5. Use Lasso regression to analyze diabetes data
 
 In this example we will use Lasso regression to analyze the diabetes data available from sklearn. The lasso function uses the sklearn.processing StandardScaler to standardize the X values by default. Then the lasso function uses the standardized X values to find each of the best fit models using LassoCV, LassoLarsCV, LassoLarsIC using AIC, and LassoLarsIC using BIC.
 
@@ -376,7 +425,7 @@ Time elapsed: 1.79 sec
 
 ---
 
-## Example 5. Use Ridge regression to analyze diabetes data
+## Example 6. Use Ridge regression to analyze diabetes data
 
 In this example we will use Ridge regression to analyze the diabetes data available from sklearn. The ridge function uses the sklearn.processing StandardScaler to standardize the X values by default. Then the ridge function uses the standardized X values to find each of the best fit models using RidgeCV, and Ridge using AIC, BIC, and VIF for optimization.
 
@@ -454,7 +503,7 @@ Time elapsed: 1.75 sec
 
 ---
 
-## Example 6. Use Elastic Net regression to analyze diabetes data
+## Example 7. Use Elastic Net regression to analyze diabetes data
 
 In this example we will use Elastic Net regression to analyze the diabetes data available from sklearn. The elastic function uses the sklearn.processing StandardScaler to standardize the X values by default. Then the elastic function uses the standardized X values to find the best fit model using ElasticNetCV, and Ridge using MSE as the scoring criterion.
 
@@ -534,7 +583,7 @@ Time elapsed: 8.83 sec
 
 ---
 
-## Example 7. Use Stacking regression to analyze diabetes data
+## Example 8. Use Stacking regression to analyze diabetes data
 
 In this example we will use Stacking regression to analyze the diabetes data available from sklearn. The **stacking** function uses the sklearn StackingRegressor with an ensemble of models. The **stacking** function standardizes the X values by default. 
 
@@ -590,7 +639,7 @@ Time elapsed: 13.66 sec
 
 ---
 
-## Example 8. Use Stepwise regression to analyze diabetes data
+## Example 9. Use Stepwise regression to analyze diabetes data
 
 In this example we will use Stepwise regression to analyze the diabetes data available from sklearn.
 
