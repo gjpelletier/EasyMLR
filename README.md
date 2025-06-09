@@ -154,7 +154,7 @@ if you are upgrading from a previous installation of EasyMLR, enter the followin
 pip install git+https://github.com/gjpelletier/EasyMLR.git --upgrade
 ```
 
-Next import the main functions from the EasyMLR module as follows in your notebook or python code:<br>
+Next import the main functions from the EasyMLR module as needed using the following code in your notebook or python code:<br>
 ```
 from EasyMLR import lasso, ridge, elastic
 from EasyMLR import xgb, xgb_auto
