@@ -27,7 +27,7 @@ The functions in EasyMLR allow the user to write one line of python code to prov
 - figures showing other diagnostic descriptions of the analysis if applicable (e.g. coefficients vs alpha, MSE vs alpha, AIC and BIC vs alpha)
 - automatic cross-validated optimization of hyperparameters (XGBoost, CatBoost, GradientBoostingRegressor, and SVR)
 - sutomatic standardization of X and output of the scaler (optional)
-- automatic detection and use of GPU for 10x faster computations (XGBoost only)
+- automatic detection and use of GPU for computations (XGBoost and CatBoost)
 
 ### Lasso
 
