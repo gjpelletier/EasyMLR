@@ -11,6 +11,8 @@ The EasyMLR module includes the following main Python functions to facilitate th
  - **catboost** - CatBoostRegressor with user-specified hyperparameters
  - **gbr_auto** - GradientBoostingRegressor with automatic cross-validated optimization of the hyperparameters
  - **gbr** - GradientBoostingRegressor with user-specified hyperparameters
+ - **forest_auto** - RandomForestRegressor with automatic cross-validated optimization of the hyperparameters
+ - **forest** - RandomForestRegressor with user-specified hyperparameters
  - **svr_auto** - SVR with automatic cross-validated optimization of the hyperparameters
  - **svr** - SVR with user-specified hyperparameters
  - **lgbm** - LGBMRegressor with user-specified hyperparameters
@@ -25,7 +27,7 @@ The functions in EasyMLR allow the user to write one line of python code to prov
 - variance  inflation factors (if applicable)
 - plots of predicted vs actual and predicted vs residuals
 - figures showing other diagnostic descriptions of the analysis if applicable (e.g. coefficients vs alpha, MSE vs alpha, AIC and BIC vs alpha)
-- automatic cross-validated optimization of hyperparameters (XGBoost, CatBoost, GradientBoostingRegressor, and SVR)
+- automatic cross-validated optimization of hyperparameters (XGBoost, CatBoost, GradientBoostingRegressor, RandomForestRegressor, and SVR)
 - show plots of optuna optimization history, hyperparameter importance, and contour plots of relationships between hyperparameters and MSE 
 - automatic standardization of X and output of the scaler (optional)
 - automatic detection and use of GPU for computations (XGBoost and CatBoost)
