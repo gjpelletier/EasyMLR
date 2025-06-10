@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.48"
+__version__ = "1.1.49"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
@@ -3583,6 +3583,7 @@ def svr_auto(X, y, **kwargs):
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
                 - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'optuna_study': optimzed optuna study object
                 - 'best_params': best model hyper-parameters found by optuna
                 - 'y_pred': Predicted y values
                 - 'residuals': Residuals (y-y_pred) for each of the four methods
@@ -3596,7 +3597,7 @@ def svr_auto(X, y, **kwargs):
     column names for for each column
 
     EXAMPLE 
-    model_objects, model_outputs = xgb(X, y)
+    model_objects, model_outputs = svr_auto(X, y)
 
     """
 
@@ -3739,6 +3740,7 @@ def svr_auto(X, y, **kwargs):
     study.optimize(lambda trial: svr_objective(trial, X, y, **data), n_trials=data['n_trials'])
     best_params = study.best_params
     model_outputs['best_params'] = best_params
+    model_outputs['optuna_study'] = study
 
     print('Fitting SVR model with best parameters, please wait ...')
     fitted_model = SVR(**best_params, **extra_params,
@@ -4552,6 +4554,7 @@ def gbr_auto(X, y, **kwargs):
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
                 - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'optuna_study': optimzed optuna study object
                 - 'best_params': best model hyper-parameters found by optuna
                 - 'y_pred': Predicted y values
                 - 'residuals': Residuals (y-y_pred) for each of the four methods
@@ -4737,6 +4740,7 @@ def gbr_auto(X, y, **kwargs):
  
     best_params = study.best_params
     model_outputs['best_params'] = best_params
+    model_outputs['optuna_study'] = study
 
     print('Fitting GradientBoostingRegressor model with best parameters, please wait ...')
     fitted_model = GradientBoostingRegressor(**best_params, **extra_params).fit(X,y)
@@ -5268,6 +5272,7 @@ def xgb_auto(X, y, **kwargs):
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
                 - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'optuna_study': optimzed optuna study object
                 - 'best_params': best model hyper-parameters found by optuna
                 - 'y_pred': Predicted y values
                 - 'residuals': Residuals (y-y_pred) for each of the four methods
@@ -5440,6 +5445,7 @@ def xgb_auto(X, y, **kwargs):
     study.optimize(lambda trial: xgb_objective(trial, X, y, **data), n_trials=data['n_trials'])
     best_params = study.best_params
     model_outputs['best_params'] = best_params
+    model_outputs['optuna_study'] = study
 
     print('Fitting XGBRegressor model with best parameters, please wait ...')
     fitted_model = XGBRegressor(**best_params, **extra_params).fit(X,y)
@@ -5896,7 +5902,7 @@ def catboost(X, y, **kwargs):
     column names for for each column
 
     EXAMPLE 
-    model_objects, model_outputs = gbr(X, y)
+    model_objects, model_outputs = catboost(X, y)
 
     """
 
@@ -6257,6 +6263,7 @@ def catboost_auto(X, y, **kwargs):
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
                 - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'optuna_study': optimzed optuna study object
                 - 'best_params': best model hyper-parameters found by optuna
                 - 'y_pred': Predicted y values
                 - 'residuals': Residuals (y-y_pred) for each of the four methods
@@ -6270,7 +6277,7 @@ def catboost_auto(X, y, **kwargs):
     column names for for each column
 
     EXAMPLE 
-    model_objects, model_outputs = xgb_auto(X, y)
+    model_objects, model_outputs = catboost_auto(X, y)
 
     """
 
@@ -6409,6 +6416,7 @@ def catboost_auto(X, y, **kwargs):
     study.optimize(lambda trial: catboost_objective(trial, X, y, **data), n_trials=data['n_trials'])
     best_params = study.best_params
     model_outputs['best_params'] = best_params
+    model_outputs['optuna_study'] = study
 
     print('Fitting CatBoostRegressor model with best parameters, please wait ...')
     del best_params['use_border_count']
