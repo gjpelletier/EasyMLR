@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.50"
+__version__ = "1.1.51"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
@@ -813,6 +813,7 @@ def stepwise(X, y, **kwargs):
         print('')
     print('Done')
     print(f"Time elapsed: {fit_time:.2f} sec")
+    print('')
 
     # Restore warnings to normal
     warnings.filterwarnings("default")
@@ -1723,6 +1724,7 @@ def lasso(X, y, **kwargs):
     fit_time = time.time() - start_time
     print('Done')
     print(f"Time elapsed: {fit_time:.2f} sec")
+    print('')
 
     # Restore warnings to normal
     warnings.filterwarnings("default")
@@ -2366,6 +2368,7 @@ def ridge(X, y, **kwargs):
     fit_time = time.time() - start_time
     print('Done')
     print(f"Time elapsed: {fit_time:.2f} sec")
+    print('')
 
     # Restore warnings to normal
     warnings.filterwarnings("default")
@@ -2779,6 +2782,7 @@ def elastic(X, y, **kwargs):
     fit_time = time.time() - start_time
     print('Done')
     print(f"Time elapsed: {fit_time:.2f} sec")
+    print('')
 
     # Restore warnings to normal
     warnings.filterwarnings("default")
@@ -3166,6 +3170,7 @@ def stacking(X, y, **kwargs):
     fit_time = time.time() - start_time
     print('Done')
     print(f"Time elapsed: {fit_time:.2f} sec")
+    print('')
 
     # Restore warnings to normal
     warnings.filterwarnings("default")
@@ -3465,6 +3470,7 @@ def svr(X, y, **kwargs):
     fit_time = time.time() - start_time
     print('Done')
     print(f"Time elapsed: {fit_time:.2f} sec")
+    print('')
 
     # Restore warnings to normal
     warnings.filterwarnings("default")
@@ -3830,6 +3836,7 @@ def svr_auto(X, y, **kwargs):
     fit_time = time.time() - start_time
     print('Done')
     print(f"Time elapsed: {fit_time:.2f} sec")
+    print('')
 
     # Restore warnings to normal
     warnings.filterwarnings("default")
@@ -4089,6 +4096,7 @@ def sgd(X, y, **kwargs):
     fit_time = time.time() - start_time
     print('Done')
     print(f"Time elapsed: {fit_time:.2f} sec")
+    print('')
 
     # Restore warnings to normal
     warnings.filterwarnings("default")
@@ -4420,6 +4428,7 @@ def gbr(X, y, **kwargs):
     fit_time = time.time() - start_time
     print('Done')
     print(f"Time elapsed: {fit_time:.2f} sec")
+    print('')
 
     # Restore warnings to normal
     warnings.filterwarnings("default")
@@ -4830,6 +4839,7 @@ def gbr_auto(X, y, **kwargs):
     fit_time = time.time() - start_time
     print('Done')
     print(f"Time elapsed: {fit_time:.2f} sec")
+    print('')
 
     # Restore warnings to normal
     warnings.filterwarnings("default")
@@ -5140,6 +5150,7 @@ def xgb(X, y, **kwargs):
     fit_time = time.time() - start_time
     print('Done')
     print(f"Time elapsed: {fit_time:.2f} sec")
+    print('')
 
     # Restore warnings to normal
     warnings.filterwarnings("default")
@@ -5535,6 +5546,7 @@ def xgb_auto(X, y, **kwargs):
     fit_time = time.time() - start_time
     print('Done')
     print(f"Time elapsed: {fit_time:.2f} sec")
+    print('')
 
     # Restore warnings to normal
     warnings.filterwarnings("default")
@@ -5834,6 +5846,7 @@ def lgbm(X, y, **kwargs):
     fit_time = time.time() - start_time
     print('Done')
     print(f"Time elapsed: {fit_time:.2f} sec")
+    print('')
 
     # Restore warnings to normal
     warnings.filterwarnings("default")
@@ -6131,6 +6144,7 @@ def catboost(X, y, **kwargs):
     fit_time = time.time() - start_time
     print('Done')
     print(f"Time elapsed: {fit_time:.2f} sec")
+    print('')
 
     # Restore warnings to normal
     warnings.filterwarnings("default")
@@ -6507,6 +6521,7 @@ def catboost_auto(X, y, **kwargs):
     fit_time = time.time() - start_time
     print('Done')
     print(f"Time elapsed: {fit_time:.2f} sec")
+    print('')
 
     # Restore warnings to normal
     warnings.filterwarnings("default")
