@@ -163,6 +163,8 @@ from EasyMLR import catboost, catboost_auto,
 from EasyMLR import gbr, gbr_auto,
 from EasyMLR import svr, svr_auto,
 from EasyMLR import lgbm, stacking, stepwise
+from EasyMLR import show_optuna
+from EasyMLR import plot_predictions_from_test
 ```
 
 
