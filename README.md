@@ -28,7 +28,7 @@ The functions in EasyMLR allow the user to write one line of python code to prov
 - automatic cross-validated optimization of hyperparameters (XGBoost, CatBoost, GradientBoostingRegressor, and SVR)
 - automatic standardization of X and output of the scaler (optional)
 - automatic detection and use of GPU for computations (XGBoost and CatBoost)
-- show plots of optuna optimization history, hyperparameter importance, and contour plots of relationships between hyperparameters and scoring 
+- show plots of optuna optimization history, hyperparameter importance, and contour plots of relationships between hyperparameters and MSE 
 
 ### Lasso
 
