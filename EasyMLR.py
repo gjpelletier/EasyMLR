@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.52"
+__version__ = "1.1.53"
 
 def show_optuna(study):
 
@@ -76,6 +76,15 @@ def show_optuna(study):
         # plt.savefig('optuna_C_vs_epsilon.png', 
         #             dpi=plt.gcf().dpi, bbox_inches='tight') 
         plt.savefig('optuna_C_vs_epsilon.png', 
+                    dpi=300, bbox_inches='tight') 
+        plt.show()
+    elif ('min_samples_leaf' in study.best_params 
+        and 'max_features' in study.best_params):
+        optuna.visualization.matplotlib.plot_contour(study, params=["min_samples_leaf", "max_features"])
+        plt.title("min_samples_leaf vs. max_features")
+        # plt.savefig('optuna_C_vs_epsilon.png', 
+        #             dpi=plt.gcf().dpi, bbox_inches='tight') 
+        plt.savefig('optuna_min_samples_leaf_vs_max_features.png', 
                     dpi=300, bbox_inches='tight') 
         plt.show()
     
@@ -6621,7 +6630,721 @@ def catboost_auto(X, y, **kwargs):
 
     return fitted_model, model_outputs
   
+def forest(X, y, **kwargs):
 
+    """
+    Linear regression with sklearn RandomForestRegressor
+    Beta version
+
+    by
+    Greg Pelletier
+    gjpelletier@gmail.com
+    10-June-2025
+
+    REQUIRED INPUTS (X and y should have same number of rows and 
+    only contain real numbers)
+    X = dataframe of the candidate independent variables 
+        (as many columns of data as needed)
+    y = dataframe of the dependent variable (one column of data)
+
+    OPTIONAL KEYWORD ARGUMENTS
+    **kwargs (optional keyword arguments):
+        n_trials= 50,                     # number of optuna trials
+        standardize= 'on',
+        verbose= 'on',                    # 'on' to display all 
+        gpu= True,                        # Autodetect to use gpu if present
+        n_splits= 5,                      # number of splits for KFold CV
+
+        # params that are optimized by optuna
+        n_estimators= 100,                # number of trees in the forest
+        max_depth= None,                  # max depth of a tree
+        min_samples_split= 2,             # min samples to split internal node
+        min_samples_leaf= 1,              # min samples to be at a leaf node
+        max_features= 1.0,                # number of features to consider 
+                                          # when looking for the best split
+        max_leaf_nodes= None,             # max number of leaf nodes
+        min_impurity_decrease= 0.0,       # node will be split if this 
+                                          # decrease of the impurity 
+        ccp_alpha= 0.0,                   # parameter for 
+                                          # minimum cost-complexity pruning
+        bootstrap= True,                  # whether bootstrap samples are used
+
+        # extra_params that are optional user-specified
+        random_state= 42,                 # random seed for reproducibility
+        criterion= 'squared_error',       # function to measure quality of split
+        min_weight_fraction_leaf= 0.0,    # min weighted fraction of the 
+                                          # sum total of weights 
+                                          # (of all the input samples) 
+                                          # required to be at a leaf node
+                                          # greater than or equal to this value
+        oob_score= False,                 # whether to use out-of-bag samples
+        n_jobs= -1,                       # number of jobs to run in parallel
+                                          # -1 means use all cpu cores
+        warm_start= False,                # reuse the previous solution
+        max_samples= None,                # If bootstrap is True, the number 
+                                          # of samples to draw from X 
+                                          # to train each base estimator
+        monotonic_cst= None               # monotonicity constraint 
+                                          # to enforce on each feature
+
+    Standardization is generally recommended
+
+    RETURNS
+        fitted_model, model_outputs
+            model_objects is the fitted model object
+            model_outputs is a dictionary of the following outputs: 
+                - 'scaler': sklearn.preprocessing StandardScaler for X
+                - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'y_pred': Predicted y values
+                - 'residuals': Residuals (y-y_pred) for each of the four methods
+                - 'stats': Regression statistics for each model
+
+    NOTE
+    Do any necessary/optional cleaning of the data before 
+    passing the data to this function. X and y should have the same number of rows
+    and contain only real numbers with no missing values. X can contain as many
+    columns as needed, but y should only be one column. X should have unique
+    column names for for each column
+
+    EXAMPLE 
+    model_objects, model_outputs = forest(X, y)
+
+    """
+
+    from EasyMLR import stats_given_y_pred, detect_dummy_variables, detect_gpu
+    import time
+    import pandas as pd
+    import numpy as np
+    from sklearn.ensemble import GradientBoostingRegressor
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.model_selection import cross_val_score, train_test_split
+    from sklearn.metrics import mean_squared_error
+    from sklearn.base import clone
+    from sklearn.metrics import PredictionErrorDisplay
+    from sklearn.model_selection import train_test_split
+    import matplotlib.pyplot as plt
+    import warnings
+    import sys
+    import statsmodels.api as sm
+    from sklearn.ensemble import RandomForestRegressor
+
+    # Define default values of input data arguments
+    defaults = {
+        'n_trials': 50,                     # number of optuna trials
+        'standardize': 'on',
+        'verbose': 'on',
+        'gpu': True,                        # Autodetect to use gpu if present
+        'n_splits': 5,                      # number of splits for KFold CV
+
+        # params that are optimized by optuna
+        'n_estimators': 100,                # number of trees in the forest
+        'max_depth': None,                  # max depth of a tree
+        'min_samples_split': 2,             # min samples to split internal node
+        'min_samples_leaf': 1,              # min samples to be at a leaf node
+        'max_features': 1.0,                # number of features to consider 
+                                            # when looking for the best split
+        'max_leaf_nodes': None,             # max number of leaf nodes
+        'min_impurity_decrease': 0.0,       # node will be split if this 
+                                            # induces a decrease of the impurity 
+                                            # greater than or equal to this value
+        'ccp_alpha': 0.0,                   # parameter for 
+                                            # Minimum Cost-Complexity Pruning
+        'bootstrap': True,                  # whether bootstrap samples are used
+
+        # extra_params that are optional user-specified
+        'random_state': 42,                 # random seed for reproducibility
+        'criterion': 'squared_error',       # function to measure quality of split
+        'min_weight_fraction_leaf': 0.0,    # min weighted fraction of the 
+                                            # sum total of weights 
+                                            # (of all the input samples) 
+                                            # required to be at a leaf node
+        'oob_score': False,                 # whether to use out-of-bag samples
+        'n_jobs': -1,                       # number of jobs to run in parallel
+                                            # -1 means use all cpu cores
+        'warm_start': False,                # reuse the previous solution
+        'max_samples': None,                # If bootstrap is True, the number 
+                                            # of samples to draw from X 
+                                            # to train each base estimator
+        'monotonic_cst': None               # monotonicity constraint 
+                                            # to enforce on each feature
+    }
+
+    # Update input data argumements with any provided keyword arguments in kwargs
+    data = {**defaults, **kwargs}
+
+    if data['gpu']:
+        use_gpu = detect_gpu()
+        if use_gpu:
+            data['device'] = 'gpu'
+        else:
+            data['device'] = 'cpu'
+    else:
+        data['device'] = 'cpu'
+
+    # check for input errors
+    ctrl = isinstance(X, pd.DataFrame)
+    if not ctrl:
+        print('Check X: it needs to be pandas dataframes!','\n')
+        sys.exit()
+    ctrl = (X.index == y.index).all()
+    if not ctrl:
+        print('Check X and y: they need to have the same index values!','\n')
+        sys.exit()
+    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
+    if not ctrl:
+        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
+        sys.exit()
+    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
+    if not ctrl:
+        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        sys.exit()
+    ctrl = X.shape[0] == y.shape[0]
+    if not ctrl:
+        print('Check X and y: X and y need to have the same number of rows!','\n')
+        sys.exit()
+    ctrl = X.columns.is_unique
+    if not ctrl:
+        print('Check X: X needs to have unique column names for every column!','\n')
+        sys.exit()
+
+    # Suppress warnings
+    warnings.filterwarnings('ignore')
+    print('Fitting XGBRegressor model, please wait ...')
+    if data['verbose'] == 'on':
+        print('')
+
+    # Set start time for calculating run time
+    start_time = time.time()
+
+    # check if X contains dummy variables
+    X_has_dummies = detect_dummy_variables(X)
+
+    # Initialize output dictionaries
+    model_objects = {}
+    model_outputs = {}
+
+    # Standardized X (X_scaled)
+    scaler = StandardScaler().fit(X)
+    X_scaled = scaler.transform(X)
+    # Convert scaled arrays into pandas dataframes with same column names as X
+    X_scaled = pd.DataFrame(X_scaled, columns=X.columns)
+    # Copy index from unscaled to scaled dataframes
+    X_scaled.index = X.index
+    # model_outputs['X_scaled'] = X_scaled                 # standardized X
+    model_outputs['scaler'] = scaler                     # scaler used to standardize X
+    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+
+    # Specify X to be used for fitting the models 
+    if data['standardize'] == 'on':
+        X = X_scaled.copy()
+    elif data['standardize'] == 'off':
+        X = X.copy()
+
+    params = {
+        'n_estimators': data['n_estimators'],               
+        'max_depth': data['max_depth'],                 
+        'min_samples_split': data['min_samples_split'],            
+        'min_samples_leaf': data['min_samples_leaf'],             
+        'max_features': data['max_features'],             
+        'max_leaf_nodes': data['max_leaf_nodes'],           
+        'min_impurity_decrease': data['min_impurity_decrease'],       
+        'ccp_alpha': data['ccp_alpha'],                 
+        'bootstrap': data['bootstrap']                 
+    }
+
+    extra_params = {
+        'verbose': 0,                 
+        'random_state': data['random_state'],                
+        'criterion': data['criterion'],       
+        'min_weight_fraction_leaf': data['min_weight_fraction_leaf'],    
+        'oob_score': data['oob_score'],                 
+        'n_jobs': data['n_jobs'],                      
+        'warm_start': data['warm_start'],               
+        'max_samples': data['max_samples'],                
+        'monotonic_cst': data['monotonic_cst']             
+    }
+    
+    fitted_model = RandomForestRegressor(**params, **extra_params).fit(X,y)
+        
+    # check to see of the model has intercept and coefficients
+    if (hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_') 
+            and fitted_model.coef_.size==len(X.columns)):
+        intercept = fitted_model.intercept_
+        coefficients = fitted_model.coef_
+        # dataframe of model parameters, intercept and coefficients, including zero coefs
+        n_param = 1 + fitted_model.coef_.size               # number of parameters including intercept
+        popt = [['' for i in range(n_param)], np.full(n_param,np.nan)]
+        for i in range(n_param):
+            if i == 0:
+                popt[0][i] = 'Intercept'
+                popt[1][i] = model.intercept_
+            else:
+                popt[0][i] = X.columns[i-1]
+                popt[1][i] = model.coef_[i-1]
+        popt = pd.DataFrame(popt).T
+        popt.columns = ['Feature', 'Parameter']
+        # Table of intercept and coef
+        popt_table = pd.DataFrame({
+                "Feature": popt['Feature'],
+                "Parameter": popt['Parameter']
+            })
+        popt_table.set_index('Feature',inplace=True)
+        model_outputs['popt_table'] = popt_table
+    
+    # Calculate regression statistics
+    y_pred = fitted_model.predict(X)
+    stats = stats_given_y_pred(X,y,y_pred)
+    
+    # model objects and outputs returned by stacking
+    model_outputs['scaler'] = scaler                     # scaler used to standardize X
+    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['y_pred'] = stats['y_pred']
+    model_outputs['residuals'] = stats['residuals']
+    # model_objects = model
+    
+    # residual plot for training error
+    if data['verbose'] == 'on':
+        fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
+        PredictionErrorDisplay.from_predictions(
+            y,
+            y_pred=stats['y_pred'],
+            kind="actual_vs_predicted",
+            ax=axs[0]
+        )
+        axs[0].set_title("Actual vs. Predicted")
+        PredictionErrorDisplay.from_predictions(
+            y,
+            y_pred=stats['y_pred'],
+            kind="residual_vs_predicted",
+            ax=axs[1]
+        )
+        axs[1].set_title("Residuals vs. Predicted")
+        fig.suptitle(
+            f"Predictions compared with actual values and residuals (RMSE={stats['RMSE']:.3f})")
+        plt.tight_layout()
+        # plt.show()
+        plt.savefig("RandomForestRegressor_predictions.png", dpi=300)
+    
+    # Make the model_outputs dataframes
+    list1_name = ['r-squared', 'RMSE', 'n_samples']        
+    list1_val = [stats["rsquared"], stats["RMSE"], stats["n_samples"]]
+    
+    stats = pd.DataFrame(
+        {
+            "Statistic": list1_name,
+            "RandomForestRegressor": list1_val
+        }
+        )
+    stats.set_index('Statistic',inplace=True)
+    model_outputs['stats'] = stats
+    print("RandomForestRegressor statistics of fitted model in model_outputs['stats']:")
+    print('')
+    print(model_outputs['stats'].to_markdown(index=True))
+    print('')
+    if hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_'):
+        print("Parameters of fitted model in model_outputs['popt']:")
+        print('')
+        print(model_outputs['popt_table'].to_markdown(index=True))
+        print('')
+
+    # Print the run time
+    fit_time = time.time() - start_time
+    print('Done')
+    print(f"Time elapsed: {fit_time:.2f} sec")
+    print('')
+
+    # Restore warnings to normal
+    warnings.filterwarnings("default")
+
+    return fitted_model, model_outputs
+
+def forest_objective(trial, X, y, **kwargs):
+    '''
+    Objective function used by optuna 
+    to find the optimum hyper-parameters for 
+    sklearn RandomForestRegressor
+    '''
+    import numpy as np
+    from sklearn.model_selection import cross_val_score, KFold
+    from EasyMLR import detect_gpu
+    from sklearn.ensemble import RandomForestRegressor
+
+    # Set global random seed
+    np.random.seed(kwargs['random_state'])
+    
+    params = {
+        "n_estimators": trial.suggest_int("n_estimators",
+            kwargs['n_estimators'][0], kwargs['n_estimators'][1]),
+        "max_depth": trial.suggest_int("max_depth",
+            kwargs['max_depth'][0], kwargs['max_depth'][1]),
+        "min_samples_split": trial.suggest_int("min_samples_split",
+            kwargs['min_samples_split'][0], kwargs['min_samples_split'][1], log=True),
+        "min_samples_leaf": trial.suggest_int("min_samples_leaf",
+            kwargs['min_samples_leaf'][0], kwargs['min_samples_leaf'][1], log=True),
+        "max_features": trial.suggest_float("max_features",
+            kwargs['max_features'][0], kwargs['max_features'][1]),
+        "max_leaf_nodes": trial.suggest_int("max_leaf_nodes",
+            kwargs['max_leaf_nodes'][0], kwargs['max_leaf_nodes'][1], log=True),
+        "min_impurity_decrease": trial.suggest_float("min_impurity_decrease",
+            kwargs['min_impurity_decrease'][0], kwargs['min_impurity_decrease'][1]),
+        "ccp_alpha": trial.suggest_float("ccp_alpha",
+            kwargs['ccp_alpha'][0], kwargs['ccp_alpha'][1], log=True),
+        "bootstrap":  trial.suggest_categorical("bootstrap",
+            kwargs['bootstrap'])
+    }    
+
+    extra_params = {
+        'verbose': 0,                 
+        'random_state': kwargs['random_state'],                
+        'criterion': kwargs['criterion'],       
+        'min_weight_fraction_leaf': kwargs['min_weight_fraction_leaf'],    
+        'oob_score': kwargs['oob_score'],                 
+        'n_jobs': kwargs['n_jobs'],                      
+        'warm_start': kwargs['warm_start'],               
+        'max_samples': kwargs['max_samples'],                
+        'monotonic_cst': kwargs['monotonic_cst']             
+    }
+
+    cv = KFold(n_splits=kwargs['n_splits'], 
+        shuffle=True, 
+        random_state=kwargs['random_state'])
+
+    # Train model with CV
+    model = RandomForestRegressor(**params, **extra_params)
+    score = cross_val_score(model, X, y, cv=cv, scoring="neg_root_mean_squared_error")    
+    return np.mean(score)
+
+def forest_auto(X, y, **kwargs):
+
+    """
+    Autocalibration of RandomForestRegressor hyper-parameters
+    Beta version
+
+    by
+    Greg Pelletier
+    gjpelletier@gmail.com
+    10-June-2025
+
+    REQUIRED INPUTS (X and y should have same number of rows and 
+    only contain real numbers)
+    X = dataframe of the candidate independent variables 
+        (as many columns of data as needed)
+    y = dataframe of the dependent variable (one column of data)
+
+    OPTIONAL KEYWORD ARGUMENTS
+    **kwargs (optional keyword arguments):
+        n_trials= 50,                     # number of optuna trials
+        standardize= 'on',
+        verbose= 'on',                    # 'on' to display all 
+        gpu= True,                        # Autodetect to use gpu if present
+        n_splits= 5,                      # number of splits for KFold CV
+
+        # params that are optimized by optuna
+        n_estimators= [50, 500],          # number of trees in the forest
+        max_depth= [3, 30],               # max depth of a tree
+        min_samples_split= [2, 50],       # min samples to split internal node
+        min_samples_leaf= [1, 50],        # min samples to be at a leaf node
+        max_features= [0.1, 1.0],         # number of features to consider 
+                                          # when looking for the best split
+        max_leaf_nodes= [10, 1000],       # max number of leaf nodes
+        min_impurity_decrease= [0.0, 0.1],    # node will be split if this 
+                                              # decrease of the impurity 
+        ccp_alpha= [0.0001, 0.1],         # parameter for 
+                                          # minimum cost-complexity pruning
+        bootstrap= [True, False],         # whether bootstrap samples are used
+
+        # extra_params that are optional user-specified
+        random_state= 42,                 # random seed for reproducibility
+        criterion= 'squared_error',       # function to measure quality of split
+        min_weight_fraction_leaf= 0.0,    # min weighted fraction of the 
+                                          # sum total of weights 
+                                          # (of all the input samples) 
+                                          # required to be at a leaf node
+                                          # greater than or equal to this value
+        oob_score= False,                 # whether to use out-of-bag samples
+        n_jobs= -1,                       # number of jobs to run in parallel
+                                          # -1 means use all cpu cores
+        warm_start= False,                # reuse the previous solution
+        max_samples= None,                # If bootstrap is True, the number 
+                                          # of samples to draw from X 
+                                          # to train each base estimator
+        monotonic_cst= None               # monotonicity constraint 
+                                          # to enforce on each feature
+
+    Standardization is generally recommended
+
+    RETURNS
+        fitted_model, model_outputs
+            model_objects is the fitted model object
+            model_outputs is a dictionary of the following outputs: 
+                - 'scaler': sklearn.preprocessing StandardScaler for X
+                - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'optuna_study': optimzed optuna study object
+                - 'best_params': best model hyper-parameters found by optuna
+                - 'y_pred': Predicted y values
+                - 'residuals': Residuals (y-y_pred) for each of the four methods
+                - 'stats': Regression statistics for each model
+
+    NOTE
+    Do any necessary/optional cleaning of the data before 
+    passing the data to this function. X and y should have the same number of rows
+    and contain only real numbers with no missing values. X can contain as many
+    columns as needed, but y should only be one column. X should have unique
+    column names for for each column
+
+    EXAMPLE 
+    model_objects, model_outputs = forest_auto(X, y)
+
+    """
+
+    from EasyMLR import stats_given_y_pred, detect_dummy_variables, detect_gpu
+    import time
+    import pandas as pd
+    import numpy as np
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.model_selection import cross_val_score, train_test_split
+    from sklearn.metrics import mean_squared_error
+    from sklearn.base import clone
+    from sklearn.metrics import PredictionErrorDisplay
+    from sklearn.model_selection import train_test_split
+    import matplotlib.pyplot as plt
+    import warnings
+    import sys
+    import statsmodels.api as sm
+    import optuna
+
+    # Define default values of input data arguments
+    defaults = {
+        'n_trials': 50,                     # number of optuna trials
+        'standardize': 'on',
+        'verbose': 'on',
+        'gpu': True,                        # Autodetect to use gpu if present
+        'n_splits': 5,                      # number of splits for KFold CV
+
+        # params that are optimized by optuna
+        'n_estimators': [50, 500],          # number of trees in the forest
+        'max_depth': [3, 30],               # max depth of a tree
+        'min_samples_split': [2, 50],       # min samples to split internal node
+        'min_samples_leaf': [1, 50],        # min samples to be at a leaf node
+        'max_features': [0.1, 1.0],         # number of features to consider 
+                                            # when looking for the best split
+        'max_leaf_nodes': [10, 1000],       # max number of leaf nodes
+        'min_impurity_decrease': [0.0, 0.1],   # node will be split if this 
+                                            # induces a decrease of the impurity 
+                                            # greater than or equal to this value
+        'ccp_alpha': [0.0001, 0.1],         # parameter for 
+                                            # Minimum Cost-Complexity Pruning
+        'bootstrap': [True, False],         # whether bootstrap samples are used
+
+        # extra_params that are optional user-specified
+        'random_state': 42,                 # random seed for reproducibility
+        'criterion': 'squared_error',       # function to measure quality of split
+        'min_weight_fraction_leaf': 0.0,    # min weighted fraction of the 
+                                            # sum total of weights 
+                                            # (of all the input samples) 
+                                            # required to be at a leaf node
+        'oob_score': False,                 # whether to use out-of-bag samples
+        'n_jobs': -1,                       # number of jobs to run in parallel
+                                            # -1 means use all cpu cores
+        'warm_start': False,                # reuse the previous solution
+        'max_samples': None,                # If bootstrap is True, the number 
+                                            # of samples to draw from X 
+                                            # to train each base estimator
+        'monotonic_cst': None               # monotonicity constraint 
+                                            # to enforce on each feature
+    }
+
+    # Update input data argumements with any provided keyword arguments in kwargs
+    data = {**defaults, **kwargs}
+
+    # Auto-detect if GPU is present and use GPU if present
+    if data['gpu']:
+        use_gpu = detect_gpu()
+        if use_gpu:
+            data['device'] = 'gpu'
+        else:
+            data['device'] = 'cpu'
+    else:
+        data['device'] = 'cpu'
+
+    # check for input errors
+    ctrl = isinstance(X, pd.DataFrame)
+    if not ctrl:
+        print('Check X: it needs to be pandas dataframes!','\n')
+        sys.exit()
+    ctrl = (X.index == y.index).all()
+    if not ctrl:
+        print('Check X and y: they need to have the same index values!','\n')
+        sys.exit()
+    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
+    if not ctrl:
+        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
+        sys.exit()
+    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
+    if not ctrl:
+        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        sys.exit()
+    ctrl = X.shape[0] == y.shape[0]
+    if not ctrl:
+        print('Check X and y: X and y need to have the same number of rows!','\n')
+        sys.exit()
+    ctrl = X.columns.is_unique
+    if not ctrl:
+        print('Check X: X needs to have unique column names for every column!','\n')
+        sys.exit()
+
+    # Suppress warnings
+    warnings.filterwarnings('ignore')
+
+    # Set start time for calculating run time
+    start_time = time.time()
+
+    # Set global random seed
+    np.random.seed(data['random_state'])
+
+    # check if X contains dummy variables
+    X_has_dummies = detect_dummy_variables(X)
+
+    # Initialize output dictionaries
+    model_objects = {}
+    model_outputs = {}
+
+    # Standardized X (X_scaled)
+    scaler = StandardScaler().fit(X)
+    X_scaled = scaler.transform(X)
+    # Convert scaled arrays into pandas dataframes with same column names as X
+    X_scaled = pd.DataFrame(X_scaled, columns=X.columns)
+    # Copy index from unscaled to scaled dataframes
+    X_scaled.index = X.index
+    # model_outputs['X_scaled'] = X_scaled                 # standardized X
+    model_outputs['scaler'] = scaler                     # scaler used to standardize X
+    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+
+    # Specify X to be used for fitting the models 
+    if data['standardize'] == 'on':
+        X = X_scaled.copy()
+    elif data['standardize'] == 'off':
+        X = X.copy()
+
+    extra_params = {
+        'verbose': 0,                 
+        'random_state': data['random_state'],                
+        'criterion': data['criterion'],       
+        'min_weight_fraction_leaf': data['min_weight_fraction_leaf'],    
+        'oob_score': data['oob_score'],                 
+        'n_jobs': data['n_jobs'],                      
+        'warm_start': data['warm_start'],               
+        'max_samples': data['max_samples'],                
+        'monotonic_cst': data['monotonic_cst']             
+    }
+
+    print('Running optuna to find best parameters, could take a few minutes, please wait...')
+    optuna.logging.set_verbosity(optuna.logging.ERROR)
+
+    # study = optuna.create_study(direction="maximize")
+    study = optuna.create_study(
+        direction="maximize", sampler=optuna.samplers.TPESampler(seed=data['random_state']))
+
+    study.optimize(lambda trial: forest_objective(trial, X, y, **data), n_trials=data['n_trials'])
+    best_params = study.best_params
+    model_outputs['best_params'] = best_params
+    model_outputs['optuna_study'] = study
+
+    print('Fitting RandomForestRegressor model with best parameters, please wait ...')
+    fitted_model = RandomForestRegressor(**best_params, **extra_params).fit(X,y)
+       
+    # check to see of the model has intercept and coefficients
+    if (hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_') 
+            and fitted_model.coef_.size==len(X.columns)):
+        intercept = fitted_model.intercept_
+        coefficients = fitted_model.coef_
+        # dataframe of model parameters, intercept and coefficients, including zero coefs
+        n_param = 1 + fitted_model.coef_.size               # number of parameters including intercept
+        popt = [['' for i in range(n_param)], np.full(n_param,np.nan)]
+        for i in range(n_param):
+            if i == 0:
+                popt[0][i] = 'Intercept'
+                popt[1][i] = model.intercept_
+            else:
+                popt[0][i] = X.columns[i-1]
+                popt[1][i] = model.coef_[i-1]
+        popt = pd.DataFrame(popt).T
+        popt.columns = ['Feature', 'Parameter']
+        # Table of intercept and coef
+        popt_table = pd.DataFrame({
+                "Feature": popt['Feature'],
+                "Parameter": popt['Parameter']
+            })
+        popt_table.set_index('Feature',inplace=True)
+        model_outputs['popt_table'] = popt_table
+    
+    # Calculate regression statistics
+    y_pred = fitted_model.predict(X)
+    stats = stats_given_y_pred(X,y,y_pred)
+    
+    # model objects and outputs returned by stacking
+    model_outputs['scaler'] = scaler                     # scaler used to standardize X
+    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['y_pred'] = stats['y_pred']
+    model_outputs['residuals'] = stats['residuals']
+    # model_objects = model
+    
+    # residual plot for training error
+    if data['verbose'] == 'on':
+        fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
+        PredictionErrorDisplay.from_predictions(
+            y,
+            y_pred=stats['y_pred'],
+            kind="actual_vs_predicted",
+            ax=axs[0]
+        )
+        axs[0].set_title("Actual vs. Predicted")
+        PredictionErrorDisplay.from_predictions(
+            y,
+            y_pred=stats['y_pred'],
+            kind="residual_vs_predicted",
+            ax=axs[1]
+        )
+        axs[1].set_title("Residuals vs. Predicted")
+        fig.suptitle(
+            f"Predictions compared with actual values and residuals (RMSE={stats['RMSE']:.3f})")
+        plt.tight_layout()
+        # plt.show()
+        plt.savefig("RandomForestRegressor_predictions.png", dpi=300)
+    
+    # Make the model_outputs dataframes
+    list1_name = ['r-squared', 'RMSE', 'n_samples']        
+    list1_val = [stats["rsquared"], stats["RMSE"], stats["n_samples"]]
+    
+    stats = pd.DataFrame(
+        {
+            "Statistic": list1_name,
+            "RandomForestRegressor": list1_val
+        }
+        )
+    stats.set_index('Statistic',inplace=True)
+    model_outputs['stats'] = stats
+    print("RandomForestRegressor statistics of fitted model in model_outputs['stats']:")
+    print('')
+    print(model_outputs['stats'].to_markdown(index=True))
+    print('')
+    if hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_'):
+        print("Parameters of fitted model in model_outputs['popt']:")
+        print('')
+        print(model_outputs['popt_table'].to_markdown(index=True))
+        print('')
+
+    # Print the run time
+    fit_time = time.time() - start_time
+    print('Done')
+    print(f"Time elapsed: {fit_time:.2f} sec")
+    print('')
+
+    # Restore warnings to normal
+    warnings.filterwarnings("default")
+
+    return fitted_model, model_outputs
 
 
 
