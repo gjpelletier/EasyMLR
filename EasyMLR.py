@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.49"
+__version__ = "1.1.50"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
@@ -316,7 +316,7 @@ def stepwise(X, y, **kwargs):
     else:
         print('Fitting Stepwise models, please wait ...')
     if data['verbose'] == 'on':
-        print('\n')
+        print('')
     start_time = time.time()
     # model_outputs = {}
     step_features = {}
@@ -810,7 +810,7 @@ def stepwise(X, y, **kwargs):
     # Print the run time
     fit_time = time.time() - start_time
     if data['verbose'] == 'on':
-        print('\n')
+        print('')
     print('Done')
     print(f"Time elapsed: {fit_time:.2f} sec")
 
@@ -1228,7 +1228,7 @@ def lasso(X, y, **kwargs):
     warnings.filterwarnings('ignore')
     print('Fitting Lasso regression models, please wait ...')
     if data['verbose'] == 'on' or data['verbose'] == 1:
-        print("\n")
+        print('')
 
     # Set start time for calculating run time
     start_time = time.time()
@@ -1704,20 +1704,20 @@ def lasso(X, y, **kwargs):
     # Print model_outputs
     if data['verbose'] == 'on' or data['verbose'] == 1:
         print("Lasso regression statistics of best models in model_outputs['stats']:")
-        print("\n")
+        print('')
         print(model_outputs['stats'].to_markdown(index=True))
-        print("\n")
+        print('')
         if data['verbose'] != 1:
             print("Coefficients of best models in model_outputs['popt']:")
-            print("\n")
+            print('')
             print(model_outputs['popt_table'].to_markdown(index=True))
-            print("\n")
+            print('')
             if not X_has_dummies:
                 print("Variance Inflation Factors model_outputs['vif']:")
                 print("Note: VIF>5 indicates excessive collinearity")
-                print("\n")
+                print('')
                 print(model_outputs['vif_table'].to_markdown(index=True))
-                print("\n")
+                print('')
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -1978,7 +1978,7 @@ def ridge(X, y, **kwargs):
     warnings.filterwarnings('ignore')
     print('Fitting Ridge regression models, please wait ...')
     if data['verbose'] == 'on' or data['verbose'] == 1:
-        print("\n")
+        print('')
 
     # Set start time for calculating run time
     start_time = time.time()
@@ -2347,20 +2347,20 @@ def ridge(X, y, **kwargs):
     # Print model_outputs
     if data['verbose'] == 'on' or data['verbose'] == 1:
         print("Ridge regression statistics of best models in model_outputs['stats']:")
-        print("\n")
+        print('')
         print(model_outputs['stats'].to_markdown(index=True))
-        print("\n")
+        print('')
         if data['verbose'] != 1:
             print("Coefficients of best models in model_outputs['popt']:")
-            print("\n")
+            print('')
             print(model_outputs['popt_table'].to_markdown(index=True))
-            print("\n")
+            print('')
             if ~has_dummies:
                 print("Variance Inflation Factors model_outputs['vif']:")
                 print("Note: VIF>5 indicates excessive collinearity")
-                print("\n")
+                print('')
                 print(model_outputs['vif_table'].to_markdown(index=True))
-                print("\n")
+                print('')
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -2525,7 +2525,7 @@ def elastic(X, y, **kwargs):
     warnings.filterwarnings('ignore')
     print('Fitting Elastic Net regression model, please wait ...')
     if data['verbose'] == 'on' or data['verbose'] == 1:
-        print("\n")
+        print('')
 
     # Set start time for calculating run time
     start_time = time.time()
@@ -2760,20 +2760,20 @@ def elastic(X, y, **kwargs):
     # Print model_outputs
     if data['verbose'] == 'on' or data['verbose'] == 1:
         print("ElasticNetCV regression statistics of best model in model_outputs['stats']:")
-        print("\n")
+        print('')
         print(model_outputs['stats'].to_markdown(index=True))
-        print("\n")
+        print('')
         if data['verbose'] != 1:
             print("Coefficients of best model in model_outputs['popt']:")
-            print("\n")
+            print('')
             print(model_outputs['popt_table'].to_markdown(index=True))
-            print("\n")
+            print('')
             if not X_has_dummies:
                 print("Variance Inflation Factors model_outputs['vif']:")
                 print("Note: VIF>5 indicates excessive collinearity")
-                print("\n")
+                print('')
                 print(model_outputs['vif_table'].to_markdown(index=True))
-                print("\n")
+                print('')
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -2952,7 +2952,7 @@ def stacking(X, y, **kwargs):
     warnings.filterwarnings('ignore')
     print('Fitting StackingRegressor models, please wait ...')
     if data['verbose'] == 'on':
-        print("\n")
+        print('')
 
     # Set start time for calculating run time
     start_time = time.time()
@@ -3138,9 +3138,9 @@ def stacking(X, y, **kwargs):
     stats.set_index('Statistic',inplace=True)
     model_outputs['stats'] = stats
     print("StackingRegressor statistics of fitted ensemble model in model_outputs['stats']:")
-    print("\n")
+    print('')
     print(model_outputs['stats'].to_markdown(index=True))
-    print("\n")
+    print('')
     
     # Table of all popt incl coef=0
     meta_params = pd.DataFrame(
@@ -3152,15 +3152,15 @@ def stacking(X, y, **kwargs):
     meta_params.set_index('Coefficient',inplace=True)
     model_outputs['meta_params'] = meta_params
     print("Meta-model coefficients of base_regressors in model_outputs['meta_params']:")
-    print("\n")
+    print('')
     print('- positive intercept suggests base models under-predict target')
     print('- negative intercept suggests base models over-predict target')
     print('- positive coefficients have high importance')
     print('- coefficients near zero have low importance')
     print('- negative coefficients have counteracting importance')
-    print("\n")
+    print('')
     print(model_outputs['meta_params'].to_markdown(index=True))
-    print("\n")
+    print('')
     
     # Print the run time
     fit_time = time.time() - start_time
@@ -3314,7 +3314,7 @@ def svr(X, y, **kwargs):
     warnings.filterwarnings('ignore')
     print('Fitting SVR model, please wait ...')
     if data['verbose'] == 'on':
-        print("\n")
+        print('')
 
     # Set start time for calculating run time
     start_time = time.time()
@@ -3452,14 +3452,14 @@ def svr(X, y, **kwargs):
     stats.set_index('Statistic',inplace=True)
     model_outputs['stats'] = stats
     print("SVR statistics of fitted model in model_outputs['stats']:")
-    print("\n")
+    print('')
     print(model_outputs['stats'].to_markdown(index=True))
-    print("\n")
+    print('')
     if hasattr(model, 'intercept_') and hasattr(model, 'coef_'):
         print("Parameters of fitted model in model_outputs['popt']:")
-        print("\n")
+        print('')
         print(model_outputs['popt_table'].to_markdown(index=True))
-        print("\n")
+        print('')
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -3817,14 +3817,14 @@ def svr_auto(X, y, **kwargs):
     stats.set_index('Statistic',inplace=True)
     model_outputs['stats'] = stats
     print("SVR statistics of fitted model in model_outputs['stats']:")
-    print("\n")
+    print('')
     print(model_outputs['stats'].to_markdown(index=True))
-    print("\n")
+    print('')
     if hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_'):
         print("Parameters of fitted model in model_outputs['popt']:")
-        print("\n")
+        print('')
         print(model_outputs['popt_table'].to_markdown(index=True))
-        print("\n")
+        print('')
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -3948,7 +3948,7 @@ def sgd(X, y, **kwargs):
     warnings.filterwarnings('ignore')
     print('Fitting SGDRegressor model, please wait ...')
     if data['verbose'] == 'on':
-        print("\n")
+        print('')
 
     # Set start time for calculating run time
     start_time = time.time()
@@ -4076,14 +4076,14 @@ def sgd(X, y, **kwargs):
     stats.set_index('Statistic',inplace=True)
     model_outputs['stats'] = stats
     print("SGDRegressor statistics of fitted model in model_outputs['stats']:")
-    print("\n")
+    print('')
     print(model_outputs['stats'].to_markdown(index=True))
-    print("\n")
+    print('')
     if hasattr(model, 'intercept_') and hasattr(model, 'coef_'):
         print("Parameters of fitted model in model_outputs['popt']:")
-        print("\n")
+        print('')
         print(model_outputs['popt_table'].to_markdown(index=True))
-        print("\n")
+        print('')
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -4259,7 +4259,7 @@ def gbr(X, y, **kwargs):
     warnings.filterwarnings('ignore')
     print('Fitting GradientBoostingRegressor model, please wait ...')
     if data['verbose'] == 'on':
-        print("\n")
+        print('')
 
     # Set start time for calculating run time
     start_time = time.time()
@@ -4407,14 +4407,14 @@ def gbr(X, y, **kwargs):
     stats.set_index('Statistic',inplace=True)
     model_outputs['stats'] = stats
     print("GradientBoostingRegressor statistics of fitted model in model_outputs['stats']:")
-    print("\n")
+    print('')
     print(model_outputs['stats'].to_markdown(index=True))
-    print("\n")
+    print('')
     if hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_'):
         print("Parameters of fitted model in model_outputs['popt']:")
-        print("\n")
+        print('')
         print(model_outputs['popt_table'].to_markdown(index=True))
-        print("\n")
+        print('')
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -4817,14 +4817,14 @@ def gbr_auto(X, y, **kwargs):
     stats.set_index('Statistic',inplace=True)
     model_outputs['stats'] = stats
     print("GradientBoostingRegressor statistics of fitted model in model_outputs['stats']:")
-    print("\n")
+    print('')
     print(model_outputs['stats'].to_markdown(index=True))
-    print("\n")
+    print('')
     if hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_'):
         print("Parameters of fitted model in model_outputs['popt']:")
-        print("\n")
+        print('')
         print(model_outputs['popt_table'].to_markdown(index=True))
-        print("\n")
+        print('')
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -4999,7 +4999,7 @@ def xgb(X, y, **kwargs):
     warnings.filterwarnings('ignore')
     print('Fitting XGBRegressor model, please wait ...')
     if data['verbose'] == 'on':
-        print("\n")
+        print('')
 
     # Set start time for calculating run time
     start_time = time.time()
@@ -5127,14 +5127,14 @@ def xgb(X, y, **kwargs):
     stats.set_index('Statistic',inplace=True)
     model_outputs['stats'] = stats
     print("XGBRegressor statistics of fitted model in model_outputs['stats']:")
-    print("\n")
+    print('')
     print(model_outputs['stats'].to_markdown(index=True))
-    print("\n")
+    print('')
     if hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_'):
         print("Parameters of fitted model in model_outputs['popt']:")
-        print("\n")
+        print('')
         print(model_outputs['popt_table'].to_markdown(index=True))
-        print("\n")
+        print('')
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -5522,14 +5522,14 @@ def xgb_auto(X, y, **kwargs):
     stats.set_index('Statistic',inplace=True)
     model_outputs['stats'] = stats
     print("XGBRegressor statistics of fitted model in model_outputs['stats']:")
-    print("\n")
+    print('')
     print(model_outputs['stats'].to_markdown(index=True))
-    print("\n")
+    print('')
     if hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_'):
         print("Parameters of fitted model in model_outputs['popt']:")
-        print("\n")
+        print('')
         print(model_outputs['popt_table'].to_markdown(index=True))
-        print("\n")
+        print('')
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -5686,7 +5686,7 @@ def lgbm(X, y, **kwargs):
     warnings.filterwarnings('ignore')
     print('Fitting LGBMRegressor model, please wait ...')
     if data['verbose'] == 'on':
-        print("\n")
+        print('')
 
     # Set start time for calculating run time
     start_time = time.time()
@@ -5821,14 +5821,14 @@ def lgbm(X, y, **kwargs):
     stats.set_index('Statistic',inplace=True)
     model_outputs['stats'] = stats
     print("LGBMRegressor statistics of fitted model in model_outputs['stats']:")
-    print("\n")
+    print('')
     print(model_outputs['stats'].to_markdown(index=True))
-    print("\n")
+    print('')
     if hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_'):
         print("Parameters of fitted model in model_outputs['popt']:")
-        print("\n")
+        print('')
         print(model_outputs['popt_table'].to_markdown(index=True))
-        print("\n")
+        print('')
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -5988,7 +5988,7 @@ def catboost(X, y, **kwargs):
     warnings.filterwarnings('ignore')
     print('Fitting CatBoostRegressor model, please wait ...')
     if data['verbose'] == 'on':
-        print("\n")
+        print('')
 
     # Set start time for calculating run time
     start_time = time.time()
@@ -6118,14 +6118,14 @@ def catboost(X, y, **kwargs):
     stats.set_index('Statistic',inplace=True)
     model_outputs['stats'] = stats
     print("CatBoostRegressor statistics of fitted model in model_outputs['stats']:")
-    print("\n")
+    print('')
     print(model_outputs['stats'].to_markdown(index=True))
-    print("\n")
+    print('')
     if hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_'):
         print("Parameters of fitted model in model_outputs['popt']:")
-        print("\n")
+        print('')
         print(model_outputs['popt_table'].to_markdown(index=True))
-        print("\n")
+        print('')
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -6494,14 +6494,14 @@ def catboost_auto(X, y, **kwargs):
     stats.set_index('Statistic',inplace=True)
     model_outputs['stats'] = stats
     print("CatBoostRegressor statistics of fitted model in model_outputs['stats']:")
-    print("\n")
+    print('')
     print(model_outputs['stats'].to_markdown(index=True))
-    print("\n")
+    print('')
     if hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_'):
         print("Parameters of fitted model in model_outputs['popt']:")
-        print("\n")
+        print('')
         print(model_outputs['popt_table'].to_markdown(index=True))
-        print("\n")
+        print('')
 
     # Print the run time
     fit_time = time.time() - start_time
