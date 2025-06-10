@@ -1,6 +1,99 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.51"
+__version__ = "1.1.52"
+
+def show_optuna(study):
+
+    '''
+    Show the results of the optimized optuna study
+
+    input:
+    study= optimized optuna study
+
+    output:
+    display and save plots of optuna study results
+    '''
+    
+    import optuna
+    import matplotlib.pyplot as plt
+    import warnings
+    warnings.filterwarnings('ignore')
+    
+    print("Best parameters:")
+    print('')
+    for key, value in study.best_params.items():
+        # print(f"{key:<10}: {value:<10}")
+        print(f"{key}: {value}")
+    print('')
+    print("Best score:", study.best_value)
+    print('')
+    
+    # Generate optimization history plot
+    optuna.visualization.matplotlib.plot_optimization_history(study)
+    plt.title("Optimization History")
+    plt.xlabel("Trial Number")
+    plt.ylabel("Mean Squared Error")
+    # plt.savefig('optuna_optimization_history.png', 
+    #             dpi=plt.gcf().dpi, bbox_inches='tight') 
+    plt.savefig('optuna_optimization_history.png', 
+                dpi=300, bbox_inches='tight') 
+    plt.show()
+    
+    # Generate hyperparameter importance plot
+    optuna.visualization.matplotlib.plot_param_importances(study)
+    # plt.title("Hyperparameter Importance")
+    plt.xlabel("Relative Importance")
+    plt.ylabel("Hyperparameters")
+    # plt.savefig('optuna_parameter_importance.png', 
+    #             dpi=plt.gcf().dpi, bbox_inches='tight') 
+    plt.savefig('optuna_parameter_importance.png', 
+                dpi=300, bbox_inches='tight') 
+    plt.show()
+
+    # Generate contour plot (shows parameter interactions)
+    if ('learning_rate' in study.best_params 
+        and 'max_depth' in study.best_params):
+        optuna.visualization.matplotlib.plot_contour(study, params=["learning_rate", "max_depth"])
+        plt.title("Learning Rate vs. Max Depth")
+        # plt.savefig('optuna_learning_rate_vs_max_depth.png', 
+        #             dpi=plt.gcf().dpi, bbox_inches='tight') 
+        plt.savefig('optuna_learning_rate_vs_max_depth.png', 
+                    dpi=300, bbox_inches='tight') 
+        plt.show()
+    elif ('learning_rate' in study.best_params 
+        and 'depth' in study.best_params):
+        optuna.visualization.matplotlib.plot_contour(study, params=["learning_rate", "depth"])
+        plt.title("Learning Rate vs. Depth")
+        # plt.savefig('optuna_learning_rate_vs_depth.png', 
+        #             dpi=plt.gcf().dpi, bbox_inches='tight') 
+        plt.savefig('optuna_learning_rate_vs_depth.png', 
+                    dpi=300, bbox_inches='tight') 
+        plt.show()
+    elif ('C' in study.best_params 
+        and 'epsilon' in study.best_params):
+        optuna.visualization.matplotlib.plot_contour(study, params=["C", "epsilon"])
+        plt.title("C vs. epsilon")
+        # plt.savefig('optuna_C_vs_epsilon.png', 
+        #             dpi=plt.gcf().dpi, bbox_inches='tight') 
+        plt.savefig('optuna_C_vs_epsilon.png', 
+                    dpi=300, bbox_inches='tight') 
+        plt.show()
+    
+    '''
+    # Generate slice plot (hyperparameter relationship)
+    optuna.visualization.matplotlib.plot_slice(study)
+    plt.title("Hyperparameter Relationship")
+    plt.show()
+        
+    # Generate parameter interaction heatmap
+    optuna.visualization.matplotlib.plot_parallel_coordinate(study)
+    plt.title("Hyperparameter Interaction Heatmap")
+    plt.show()
+    '''
+    # Restore warnings to normal
+    warnings.filterwarnings("default")
+
+    return
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
