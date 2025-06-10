@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.47"
+__version__ = "1.1.48"
 
 def plot_predictions_from_test(model, X, y, scaler='off'):
 
@@ -316,7 +316,7 @@ def stepwise(X, y, **kwargs):
     else:
         print('Fitting Stepwise models, please wait ...')
     if data['verbose'] == 'on':
-        print('')
+        print('\n')
     start_time = time.time()
     # model_outputs = {}
     step_features = {}
@@ -810,7 +810,7 @@ def stepwise(X, y, **kwargs):
     # Print the run time
     fit_time = time.time() - start_time
     if data['verbose'] == 'on':
-        print('')
+        print('\n')
     print('Done')
     print(f"Time elapsed: {fit_time:.2f} sec")
 
@@ -1228,7 +1228,7 @@ def lasso(X, y, **kwargs):
     warnings.filterwarnings('ignore')
     print('Fitting Lasso regression models, please wait ...')
     if data['verbose'] == 'on' or data['verbose'] == 1:
-        print('')
+        print("\n")
 
     # Set start time for calculating run time
     start_time = time.time()
@@ -1704,20 +1704,20 @@ def lasso(X, y, **kwargs):
     # Print model_outputs
     if data['verbose'] == 'on' or data['verbose'] == 1:
         print("Lasso regression statistics of best models in model_outputs['stats']:")
-        print('')
+        print("\n")
         print(model_outputs['stats'].to_markdown(index=True))
-        print('')
+        print("\n")
         if data['verbose'] != 1:
             print("Coefficients of best models in model_outputs['popt']:")
-            print('')
+            print("\n")
             print(model_outputs['popt_table'].to_markdown(index=True))
-            print('')
+            print("\n")
             if not X_has_dummies:
                 print("Variance Inflation Factors model_outputs['vif']:")
                 print("Note: VIF>5 indicates excessive collinearity")
-                print('')
+                print("\n")
                 print(model_outputs['vif_table'].to_markdown(index=True))
-                print('')
+                print("\n")
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -1978,7 +1978,7 @@ def ridge(X, y, **kwargs):
     warnings.filterwarnings('ignore')
     print('Fitting Ridge regression models, please wait ...')
     if data['verbose'] == 'on' or data['verbose'] == 1:
-        print('')
+        print("\n")
 
     # Set start time for calculating run time
     start_time = time.time()
@@ -2347,20 +2347,20 @@ def ridge(X, y, **kwargs):
     # Print model_outputs
     if data['verbose'] == 'on' or data['verbose'] == 1:
         print("Ridge regression statistics of best models in model_outputs['stats']:")
-        print('')
+        print("\n")
         print(model_outputs['stats'].to_markdown(index=True))
-        print('')
+        print("\n")
         if data['verbose'] != 1:
             print("Coefficients of best models in model_outputs['popt']:")
-            print('')
+            print("\n")
             print(model_outputs['popt_table'].to_markdown(index=True))
-            print('')
+            print("\n")
             if ~has_dummies:
                 print("Variance Inflation Factors model_outputs['vif']:")
                 print("Note: VIF>5 indicates excessive collinearity")
-                print('')
+                print("\n")
                 print(model_outputs['vif_table'].to_markdown(index=True))
-                print('')
+                print("\n")
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -2525,7 +2525,7 @@ def elastic(X, y, **kwargs):
     warnings.filterwarnings('ignore')
     print('Fitting Elastic Net regression model, please wait ...')
     if data['verbose'] == 'on' or data['verbose'] == 1:
-        print('')
+        print("\n")
 
     # Set start time for calculating run time
     start_time = time.time()
@@ -2760,20 +2760,20 @@ def elastic(X, y, **kwargs):
     # Print model_outputs
     if data['verbose'] == 'on' or data['verbose'] == 1:
         print("ElasticNetCV regression statistics of best model in model_outputs['stats']:")
-        print('')
+        print("\n")
         print(model_outputs['stats'].to_markdown(index=True))
-        print('')
+        print("\n")
         if data['verbose'] != 1:
             print("Coefficients of best model in model_outputs['popt']:")
-            print('')
+            print("\n")
             print(model_outputs['popt_table'].to_markdown(index=True))
-            print('')
+            print("\n")
             if not X_has_dummies:
                 print("Variance Inflation Factors model_outputs['vif']:")
                 print("Note: VIF>5 indicates excessive collinearity")
-                print('')
+                print("\n")
                 print(model_outputs['vif_table'].to_markdown(index=True))
-                print('')
+                print("\n")
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -2952,7 +2952,7 @@ def stacking(X, y, **kwargs):
     warnings.filterwarnings('ignore')
     print('Fitting StackingRegressor models, please wait ...')
     if data['verbose'] == 'on':
-        print('')
+        print("\n")
 
     # Set start time for calculating run time
     start_time = time.time()
@@ -3138,9 +3138,9 @@ def stacking(X, y, **kwargs):
     stats.set_index('Statistic',inplace=True)
     model_outputs['stats'] = stats
     print("StackingRegressor statistics of fitted ensemble model in model_outputs['stats']:")
-    print('')
+    print("\n")
     print(model_outputs['stats'].to_markdown(index=True))
-    print('')
+    print("\n")
     
     # Table of all popt incl coef=0
     meta_params = pd.DataFrame(
@@ -3152,15 +3152,15 @@ def stacking(X, y, **kwargs):
     meta_params.set_index('Coefficient',inplace=True)
     model_outputs['meta_params'] = meta_params
     print("Meta-model coefficients of base_regressors in model_outputs['meta_params']:")
-    print('')
+    print("\n")
     print('- positive intercept suggests base models under-predict target')
     print('- negative intercept suggests base models over-predict target')
     print('- positive coefficients have high importance')
     print('- coefficients near zero have low importance')
     print('- negative coefficients have counteracting importance')
-    print('')
+    print("\n")
     print(model_outputs['meta_params'].to_markdown(index=True))
-    print('')
+    print("\n")
     
     # Print the run time
     fit_time = time.time() - start_time
@@ -3314,7 +3314,7 @@ def svr(X, y, **kwargs):
     warnings.filterwarnings('ignore')
     print('Fitting SVR model, please wait ...')
     if data['verbose'] == 'on':
-        print('')
+        print("\n")
 
     # Set start time for calculating run time
     start_time = time.time()
@@ -3452,14 +3452,14 @@ def svr(X, y, **kwargs):
     stats.set_index('Statistic',inplace=True)
     model_outputs['stats'] = stats
     print("SVR statistics of fitted model in model_outputs['stats']:")
-    print('')
+    print("\n")
     print(model_outputs['stats'].to_markdown(index=True))
-    print('')
+    print("\n")
     if hasattr(model, 'intercept_') and hasattr(model, 'coef_'):
         print("Parameters of fitted model in model_outputs['popt']:")
-        print('')
+        print("\n")
         print(model_outputs['popt_table'].to_markdown(index=True))
-        print('')
+        print("\n")
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -3542,7 +3542,7 @@ def svr_auto(X, y, **kwargs):
 
     OPTIONAL KEYWORD ARGUMENTS
     **kwargs (optional keyword arguments):
-        verbose= 'on' (default, stats & all plots) or 1 (stats & residuals plot)
+        verbose= 'on' (default) or 'off'
         standardize= 'on' (default) or 'off' where
             'on': standardize X using sklearn.preprocessing StandardScaler
             'off': do not standardize X (only used if X is already standardized)
@@ -3583,7 +3583,6 @@ def svr_auto(X, y, **kwargs):
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
                 - 'standardize': 'on' scaler was used for X, 'off' scaler not used
-                - 'optuna_study': optimized optuna study object
                 - 'best_params': best model hyper-parameters found by optuna
                 - 'y_pred': Predicted y values
                 - 'residuals': Residuals (y-y_pred) for each of the four methods
@@ -3597,7 +3596,7 @@ def svr_auto(X, y, **kwargs):
     column names for for each column
 
     EXAMPLE 
-    model_objects, model_outputs = svr_auto(X, y)
+    model_objects, model_outputs = xgb(X, y)
 
     """
 
@@ -3740,32 +3739,6 @@ def svr_auto(X, y, **kwargs):
     study.optimize(lambda trial: svr_objective(trial, X, y, **data), n_trials=data['n_trials'])
     best_params = study.best_params
     model_outputs['best_params'] = best_params
-    model_outputs['optuna_study'] = study
-
-    if data['verbose'] == 'on':
-        print('')
-        print("Best parameters:")
-        for key, value in study.best_params.items():
-            print(f"{key:<10}: {value:<10}")
-        print('')
-        print("Best score:", study.best_value)
-        print('')
-        # Generate optimization history plot
-        optuna.visualization.matplotlib.plot_optimization_history(study)
-        plt.title("Optimization History")
-        plt.xlabel("Trial Number")
-        plt.ylabel("Mean Squared Error")
-        # plt.show()
-        # Generate hyperparameter importance plot
-        optuna.visualization.matplotlib.plot_param_importances(study)
-        # plt.title("Hyperparameter Importance")
-        plt.xlabel("Relative Importance")
-        plt.ylabel("Hyperparameters")
-        # plt.show()
-        # Generate contour plot (shows parameter interactions)
-        optuna.visualization.matplotlib.plot_contour(study, params=["learning_rate", "max_depth"])
-        plt.title("Contour Plot: Learning Rate vs Depth")
-        # plt.show()
 
     print('Fitting SVR model with best parameters, please wait ...')
     fitted_model = SVR(**best_params, **extra_params,
@@ -3807,7 +3780,7 @@ def svr_auto(X, y, **kwargs):
     model_outputs['residuals'] = stats['residuals']
     
     # residual plot for training error
-    if data['verbose'] == 'on' or data['verbose'] == 1:
+    if data['verbose'] == 'on':
         fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
         PredictionErrorDisplay.from_predictions(
             y,
@@ -3842,14 +3815,14 @@ def svr_auto(X, y, **kwargs):
     stats.set_index('Statistic',inplace=True)
     model_outputs['stats'] = stats
     print("SVR statistics of fitted model in model_outputs['stats']:")
-    print('')
+    print("\n")
     print(model_outputs['stats'].to_markdown(index=True))
-    print('')
+    print("\n")
     if hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_'):
         print("Parameters of fitted model in model_outputs['popt']:")
-        print('')
+        print("\n")
         print(model_outputs['popt_table'].to_markdown(index=True))
-        print('')
+        print("\n")
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -3973,7 +3946,7 @@ def sgd(X, y, **kwargs):
     warnings.filterwarnings('ignore')
     print('Fitting SGDRegressor model, please wait ...')
     if data['verbose'] == 'on':
-        print('')
+        print("\n")
 
     # Set start time for calculating run time
     start_time = time.time()
@@ -4101,14 +4074,14 @@ def sgd(X, y, **kwargs):
     stats.set_index('Statistic',inplace=True)
     model_outputs['stats'] = stats
     print("SGDRegressor statistics of fitted model in model_outputs['stats']:")
-    print('')
+    print("\n")
     print(model_outputs['stats'].to_markdown(index=True))
-    print('')
+    print("\n")
     if hasattr(model, 'intercept_') and hasattr(model, 'coef_'):
         print("Parameters of fitted model in model_outputs['popt']:")
-        print('')
+        print("\n")
         print(model_outputs['popt_table'].to_markdown(index=True))
-        print('')
+        print("\n")
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -4284,7 +4257,7 @@ def gbr(X, y, **kwargs):
     warnings.filterwarnings('ignore')
     print('Fitting GradientBoostingRegressor model, please wait ...')
     if data['verbose'] == 'on':
-        print('')
+        print("\n")
 
     # Set start time for calculating run time
     start_time = time.time()
@@ -4432,14 +4405,14 @@ def gbr(X, y, **kwargs):
     stats.set_index('Statistic',inplace=True)
     model_outputs['stats'] = stats
     print("GradientBoostingRegressor statistics of fitted model in model_outputs['stats']:")
-    print('')
+    print("\n")
     print(model_outputs['stats'].to_markdown(index=True))
-    print('')
+    print("\n")
     if hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_'):
         print("Parameters of fitted model in model_outputs['popt']:")
-        print('')
+        print("\n")
         print(model_outputs['popt_table'].to_markdown(index=True))
-        print('')
+        print("\n")
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -4535,10 +4508,10 @@ def gbr_auto(X, y, **kwargs):
 
     OPTIONAL KEYWORD ARGUMENTS
     **kwargs (optional keyword arguments):
-        verbose= 'on' (default, stats & all plots) or 1 (stats & residuals plot)
-        random_state= 42,     # initial random seed
+        random_state= 42,    # initial random seed
         n_trials= 50,         # number of optuna trials
         standardize= 'on',    # standardize X
+        verbose= 'on',        # 'on' to display summary stats and residual plots
         n_splits= 5,          # number of splits for KFold CV
         gpu= True,            # Autodetect to use gpu if present
         n_jobs= 1,            # number of CPU cores to use for optuna
@@ -4579,7 +4552,6 @@ def gbr_auto(X, y, **kwargs):
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
                 - 'standardize': 'on' scaler was used for X, 'off' scaler not used
-                - 'optuna_study': optimized optuna study object
                 - 'best_params': best model hyper-parameters found by optuna
                 - 'y_pred': Predicted y values
                 - 'residuals': Residuals (y-y_pred) for each of the four methods
@@ -4765,32 +4737,6 @@ def gbr_auto(X, y, **kwargs):
  
     best_params = study.best_params
     model_outputs['best_params'] = best_params
-    model_outputs['optuna_study'] = study
-
-    if data['verbose'] == 'on':
-        print('')
-        print("Best parameters:")
-        for key, value in study.best_params.items():
-            print(f"{key:<10}: {value:<10}")
-        print('')
-        print("Best score:", study.best_value)
-        print('')
-        # Generate optimization history plot
-        optuna.visualization.matplotlib.plot_optimization_history(study)
-        plt.title("Optimization History")
-        plt.xlabel("Trial Number")
-        plt.ylabel("Mean Squared Error")
-        # plt.show()
-        # Generate hyperparameter importance plot
-        optuna.visualization.matplotlib.plot_param_importances(study)
-        # plt.title("Hyperparameter Importance")
-        plt.xlabel("Relative Importance")
-        plt.ylabel("Hyperparameters")
-        # plt.show()
-        # Generate contour plot (shows parameter interactions)
-        optuna.visualization.matplotlib.plot_contour(study, params=["learning_rate", "max_depth"])
-        plt.title("Contour Plot: Learning Rate vs Depth")
-        # plt.show()
 
     print('Fitting GradientBoostingRegressor model with best parameters, please wait ...')
     fitted_model = GradientBoostingRegressor(**best_params, **extra_params).fit(X,y)
@@ -4832,7 +4778,7 @@ def gbr_auto(X, y, **kwargs):
     # model_objects = model
     
     # residual plot for training error
-    if data['verbose'] == 'on' or data['verbose'] == 1:
+    if data['verbose'] == 'on':
         fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
         PredictionErrorDisplay.from_predictions(
             y,
@@ -4867,14 +4813,14 @@ def gbr_auto(X, y, **kwargs):
     stats.set_index('Statistic',inplace=True)
     model_outputs['stats'] = stats
     print("GradientBoostingRegressor statistics of fitted model in model_outputs['stats']:")
-    print('')
+    print("\n")
     print(model_outputs['stats'].to_markdown(index=True))
-    print('')
+    print("\n")
     if hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_'):
         print("Parameters of fitted model in model_outputs['popt']:")
-        print('')
+        print("\n")
         print(model_outputs['popt_table'].to_markdown(index=True))
-        print('')
+        print("\n")
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -5049,7 +4995,7 @@ def xgb(X, y, **kwargs):
     warnings.filterwarnings('ignore')
     print('Fitting XGBRegressor model, please wait ...')
     if data['verbose'] == 'on':
-        print('')
+        print("\n")
 
     # Set start time for calculating run time
     start_time = time.time()
@@ -5177,14 +5123,14 @@ def xgb(X, y, **kwargs):
     stats.set_index('Statistic',inplace=True)
     model_outputs['stats'] = stats
     print("XGBRegressor statistics of fitted model in model_outputs['stats']:")
-    print('')
+    print("\n")
     print(model_outputs['stats'].to_markdown(index=True))
-    print('')
+    print("\n")
     if hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_'):
         print("Parameters of fitted model in model_outputs['popt']:")
-        print('')
+        print("\n")
         print(model_outputs['popt_table'].to_markdown(index=True))
-        print('')
+        print("\n")
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -5276,7 +5222,7 @@ def xgb_auto(X, y, **kwargs):
 
     OPTIONAL KEYWORD ARGUMENTS
     **kwargs (optional keyword arguments):
-        verbose= 'on' (default, stats & all plots) or 1 (stats & residuals plot)
+        verbose= 'on' (default) or 'off'
         standardize= 'on' (default) or 'off' where
             'on': standardize X using sklearn.preprocessing StandardScaler
             'off': do not standardize X (only used if X is already standardized)
@@ -5322,7 +5268,6 @@ def xgb_auto(X, y, **kwargs):
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
                 - 'standardize': 'on' scaler was used for X, 'off' scaler not used
-                - 'optuna_study': optimized optuna study object
                 - 'best_params': best model hyper-parameters found by optuna
                 - 'y_pred': Predicted y values
                 - 'residuals': Residuals (y-y_pred) for each of the four methods
@@ -5495,32 +5440,6 @@ def xgb_auto(X, y, **kwargs):
     study.optimize(lambda trial: xgb_objective(trial, X, y, **data), n_trials=data['n_trials'])
     best_params = study.best_params
     model_outputs['best_params'] = best_params
-    model_outputs['optuna_study'] = study
-
-    if data['verbose'] == 'on':
-        print('')
-        print("Best parameters:")
-        for key, value in study.best_params.items():
-            print(f"{key:<10}: {value:<10}")
-        print('')
-        print("Best score:", study.best_value)
-        print('')
-        # Generate optimization history plot
-        optuna.visualization.matplotlib.plot_optimization_history(study)
-        plt.title("Optimization History")
-        plt.xlabel("Trial Number")
-        plt.ylabel("Mean Squared Error")
-        # plt.show()
-        # Generate hyperparameter importance plot
-        optuna.visualization.matplotlib.plot_param_importances(study)
-        # plt.title("Hyperparameter Importance")
-        plt.xlabel("Relative Importance")
-        plt.ylabel("Hyperparameters")
-        # plt.show()
-        # Generate contour plot (shows parameter interactions)
-        optuna.visualization.matplotlib.plot_contour(study, params=["learning_rate", "max_depth"])
-        plt.title("Contour Plot: Learning Rate vs Depth")
-        # plt.show()
 
     print('Fitting XGBRegressor model with best parameters, please wait ...')
     fitted_model = XGBRegressor(**best_params, **extra_params).fit(X,y)
@@ -5562,7 +5481,7 @@ def xgb_auto(X, y, **kwargs):
     # model_objects = model
     
     # residual plot for training error
-    if data['verbose'] == 'on' or data['verbose'] == 1:
+    if data['verbose'] == 'on':
         fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
         PredictionErrorDisplay.from_predictions(
             y,
@@ -5597,14 +5516,14 @@ def xgb_auto(X, y, **kwargs):
     stats.set_index('Statistic',inplace=True)
     model_outputs['stats'] = stats
     print("XGBRegressor statistics of fitted model in model_outputs['stats']:")
-    print('')
+    print("\n")
     print(model_outputs['stats'].to_markdown(index=True))
-    print('')
+    print("\n")
     if hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_'):
         print("Parameters of fitted model in model_outputs['popt']:")
-        print('')
+        print("\n")
         print(model_outputs['popt_table'].to_markdown(index=True))
-        print('')
+        print("\n")
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -5761,7 +5680,7 @@ def lgbm(X, y, **kwargs):
     warnings.filterwarnings('ignore')
     print('Fitting LGBMRegressor model, please wait ...')
     if data['verbose'] == 'on':
-        print('')
+        print("\n")
 
     # Set start time for calculating run time
     start_time = time.time()
@@ -5896,14 +5815,14 @@ def lgbm(X, y, **kwargs):
     stats.set_index('Statistic',inplace=True)
     model_outputs['stats'] = stats
     print("LGBMRegressor statistics of fitted model in model_outputs['stats']:")
-    print('')
+    print("\n")
     print(model_outputs['stats'].to_markdown(index=True))
-    print('')
+    print("\n")
     if hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_'):
         print("Parameters of fitted model in model_outputs['popt']:")
-        print('')
+        print("\n")
         print(model_outputs['popt_table'].to_markdown(index=True))
-        print('')
+        print("\n")
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -5977,7 +5896,7 @@ def catboost(X, y, **kwargs):
     column names for for each column
 
     EXAMPLE 
-    model_objects, model_outputs = catboost(X, y)
+    model_objects, model_outputs = gbr(X, y)
 
     """
 
@@ -6063,7 +5982,7 @@ def catboost(X, y, **kwargs):
     warnings.filterwarnings('ignore')
     print('Fitting CatBoostRegressor model, please wait ...')
     if data['verbose'] == 'on':
-        print('')
+        print("\n")
 
     # Set start time for calculating run time
     start_time = time.time()
@@ -6193,14 +6112,14 @@ def catboost(X, y, **kwargs):
     stats.set_index('Statistic',inplace=True)
     model_outputs['stats'] = stats
     print("CatBoostRegressor statistics of fitted model in model_outputs['stats']:")
-    print('')
+    print("\n")
     print(model_outputs['stats'].to_markdown(index=True))
-    print('')
+    print("\n")
     if hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_'):
         print("Parameters of fitted model in model_outputs['popt']:")
-        print('')
+        print("\n")
         print(model_outputs['popt_table'].to_markdown(index=True))
-        print('')
+        print("\n")
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -6305,10 +6224,10 @@ def catboost_auto(X, y, **kwargs):
 
     OPTIONAL KEYWORD ARGUMENTS
     **kwargs (optional keyword arguments):
-        verbose= 'on' (default, stats & all plots) or 1 (stats & residuals plot)
         random_state= 42,    # initial random seed
         n_trials= 50,         # number of optuna trials
         standardize= 'on',    # standardize X
+        verbose= 'on',        # 'on' to display summary stats and residual plots
         n_splits= 5,          # number of splits for KFold CV
         gpu= False,           # Autodetect to use gpu if present
         thread_count= -1,     # number of CPU cores to use (-1 for all cores)
@@ -6338,7 +6257,6 @@ def catboost_auto(X, y, **kwargs):
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
                 - 'standardize': 'on' scaler was used for X, 'off' scaler not used
-                - 'optuna_study': optimized optuna study object
                 - 'best_params': best model hyper-parameters found by optuna
                 - 'y_pred': Predicted y values
                 - 'residuals': Residuals (y-y_pred) for each of the four methods
@@ -6352,7 +6270,7 @@ def catboost_auto(X, y, **kwargs):
     column names for for each column
 
     EXAMPLE 
-    model_objects, model_outputs = catboost_auto(X, y)
+    model_objects, model_outputs = xgb_auto(X, y)
 
     """
 
@@ -6491,32 +6409,6 @@ def catboost_auto(X, y, **kwargs):
     study.optimize(lambda trial: catboost_objective(trial, X, y, **data), n_trials=data['n_trials'])
     best_params = study.best_params
     model_outputs['best_params'] = best_params
-    model_outputs['optuna_study'] = study
-
-    if data['verbose'] == 'on':
-        print('')
-        print("Best parameters:")
-        for key, value in study.best_params.items():
-            print(f"{key:<10}: {value:<10}")
-        print('')
-        print("Best score:", study.best_value)
-        print('')
-        # Generate optimization history plot
-        optuna.visualization.matplotlib.plot_optimization_history(study)
-        plt.title("Optimization History")
-        plt.xlabel("Trial Number")
-        plt.ylabel("Mean Squared Error")
-        # plt.show()
-        # Generate hyperparameter importance plot
-        optuna.visualization.matplotlib.plot_param_importances(study)
-        # plt.title("Hyperparameter Importance")
-        plt.xlabel("Relative Importance")
-        plt.ylabel("Hyperparameters")
-        # plt.show()
-        # Generate contour plot (shows parameter interactions)
-        optuna.visualization.matplotlib.plot_contour(study, params=["learning_rate", "max_depth"])
-        plt.title("Contour Plot: Learning Rate vs Depth")
-        # plt.show()
 
     print('Fitting CatBoostRegressor model with best parameters, please wait ...')
     del best_params['use_border_count']
@@ -6559,7 +6451,7 @@ def catboost_auto(X, y, **kwargs):
     # model_objects = model
     
     # residual plot for training error
-    if data['verbose'] == 'on' or data['verbose'] == 1:
+    if data['verbose'] == 'on':
         fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
         PredictionErrorDisplay.from_predictions(
             y,
@@ -6594,14 +6486,14 @@ def catboost_auto(X, y, **kwargs):
     stats.set_index('Statistic',inplace=True)
     model_outputs['stats'] = stats
     print("CatBoostRegressor statistics of fitted model in model_outputs['stats']:")
-    print('')
+    print("\n")
     print(model_outputs['stats'].to_markdown(index=True))
-    print('')
+    print("\n")
     if hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_'):
         print("Parameters of fitted model in model_outputs['popt']:")
-        print('')
+        print("\n")
         print(model_outputs['popt_table'].to_markdown(index=True))
-        print('')
+        print("\n")
 
     # Print the run time
     fit_time = time.time() - start_time
