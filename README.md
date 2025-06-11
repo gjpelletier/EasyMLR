@@ -27,7 +27,7 @@ The functions in EasyMLR allow the user to write one line of python code to prov
 - variance  inflation factors (if applicable)
 - plots of predicted vs actual and predicted vs residuals
 - figures showing other diagnostic descriptions of the analysis if applicable (e.g. coefficients vs alpha, MSE vs alpha, AIC and BIC vs alpha)
-- automatic cross-validated optimization of hyperparameters (XGBoost, CatBoost, GradientBoostingRegressor, RandomForestRegressor, and SVR)
+- automatic cross-validated Bayesian optimization of hyperparameters (XGBoost, CatBoost, GradientBoostingRegressor, RandomForestRegressor, and SVR)
 - show plots of optuna optimization history, hyperparameter importance, and contour plots of relationships between hyperparameters and MSE 
 - automatic standardization of X and output of the scaler (optional)
 - automatic detection and use of GPU for computations (XGBoost and CatBoost)
