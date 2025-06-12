@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.54"
+__version__ = "1.1.55"
 
 def show_optuna(study):
 
@@ -107,7 +107,7 @@ def show_optuna(study):
 def plot_predictions_from_test(
     model, X, y, 
     standardize=True, scaler=None, 
-    pca_transform=False, pca=None, n_components=X.shape[1]):
+    pca_transform=False, pca=None, n_components=None):
 
     """
     Plots Actual vs Predicted and Residuals vs Predicted 
@@ -161,6 +161,7 @@ def plot_predictions_from_test(
 
     if pca_transform and pca == None:
         # fit new PCA transformer
+        n_components = min(X.shape[0],X.shape[1])   # lesser of n_samples and n_features
         pca = PCA(n_components=n_components).fit(X)
         X = pca.transform(X)        
         n_components = pca.n_components_
