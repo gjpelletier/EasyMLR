@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.53"
+__version__ = "1.1.54"
 
 def show_optuna(study):
 
@@ -104,7 +104,10 @@ def show_optuna(study):
 
     return
 
-def plot_predictions_from_test(model, X, y, scaler='off'):
+def plot_predictions_from_test(
+    model, X, y, 
+    standardize=True, scaler=None, 
+    pca_transform=False, pca=None, n_components=X.shape[1]):
 
     """
     Plots Actual vs Predicted and Residuals vs Predicted 
@@ -115,9 +118,14 @@ def plot_predictions_from_test(model, X, y, scaler='off'):
     X = dataframe of the candidate independent variables 
         (as many columns of data as needed)
     y = dataframe of the dependent variable (one column of data)
-    scaler= 'on', 'off' (default), or the scaler object 
-        that was used to standardize X in the fitted model
-
+    standardize= True (default) or False whether to standardize X
+    scaler= None (default) or 
+        the scaler object that was fit to training X
+    pca_transform= True (default) or False whether to PCA transform X
+    pca= None (default) or 
+        the PCA object that was fit to training X
+    n_components= number of components to use to fit PCA transformer
+        if pca_transform=True and pca=None
     Returns:
         fig= figure for the plot
     """
@@ -126,11 +134,13 @@ def plot_predictions_from_test(model, X, y, scaler='off'):
     import numpy as np
     from sklearn.metrics import PredictionErrorDisplay
     from sklearn.preprocessing import StandardScaler
+    from sklearn.decomposition import PCA
     import matplotlib.pyplot as plt
     import warnings
     import sys
     
-    if scaler == 'on':
+    if standardize and scaler == None:
+        # create a new scaler 
         scaler = StandardScaler().fit(X)
         X_scaled = scaler.transform(X)
         # Convert scaled arrays into pandas dataframes with same column names as X
@@ -138,18 +148,30 @@ def plot_predictions_from_test(model, X, y, scaler='off'):
         # Copy index from unscaled to scaled dataframes
         X_scaled.index = X.index
         # Replace X with the standardized X for regression
-        # X = X.copy()
         X = X_scaled.copy()
-    elif scaler != 'off':
+    elif standardize and scaler != None:
+        # use the input scaler
         X_scaled = scaler.transform(X)
         # Convert scaled arrays into pandas dataframes with same column names as X
         X_scaled = pd.DataFrame(X_scaled, columns=X.columns)
         # Copy index from unscaled to scaled dataframes
         X_scaled.index = X.index
         # Replace X with the standardized X for regression
-        # X = X.copy()
         X = X_scaled.copy()
 
+    if pca_transform and pca == None:
+        # fit new PCA transformer
+        pca = PCA(n_components=n_components).fit(X)
+        X = pca.transform(X)        
+        n_components = pca.n_components_
+        X = pd.DataFrame(pca.transform(X), columns= [f"PC_{i+1}" for i in range(n_components)])
+        X.index = y.index    
+    if pca_transform and pca != None:
+        # use input PCA transformer
+        n_components = pca.n_components_
+        X = pd.DataFrame(pca.transform(X), columns= [f"PC_{i+1}" for i in range(n_components)])
+        X.index = y.index    
+        
     y_pred = model.predict(X)    
     
     fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
@@ -277,9 +299,9 @@ def stepwise(X, y, **kwargs):
                 3) Keep removing predictors as long as it reduces AIC
             'all': find the best model of all possibe subsets of predictors
                 Note: 'all' requires no more than 20 columns in X
-        standardize= 'on' or 'off' (default) where
-            'on': standardize X using sklearn.preprocessing StandardScaler
-            'off': do not standardize X (default)
+        standardize= True or False (default) where
+            True: standardize X using sklearn.preprocessing StandardScaler
+            False: do not standardize X (default)
         drop_insig= 'on' (default) or 'off'
             'on': drop predictors with p-values below threshold p-value (default) 
             'off': keep all predictors regardless of p-value
@@ -291,7 +313,7 @@ def stepwise(X, y, **kwargs):
             model_output is a dictionary of the following outputs:    
             model_outputs is a dictionary of the following outputs:
                 - 'scaler': sklearn.preprocessing StandardScaler for X
-                - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'standardize': True scaler was used for X, False scaler not used
                 - 'selected_features' are the final selected features
                 - 'step_features' are the features and fitness score at each step
                     (if 'direction'=='forward' or 'direction'=='backward'), 
@@ -345,7 +367,7 @@ def stepwise(X, y, **kwargs):
         'criterion': 'AIC',
         'verbose': 'on',
         'direction': 'forward',
-        'standardize': 'off',
+        'standardize': False,
         'drop_insig': 'on',
         'p_threshold': 0.05
         }
@@ -424,7 +446,7 @@ def stepwise(X, y, **kwargs):
     step_features = {}
     
     # Option to use standardized X
-    if data['standardize'] == 'on':
+    if data['standardize']:
         scaler = StandardScaler().fit(X)
         X_scaled = scaler.transform(X)
         # Convert scaled arrays into pandas dataframes with same column names as X
@@ -1200,9 +1222,9 @@ def lasso(X, y, **kwargs):
     **kwargs (optional keyword arguments):
         nfolds= number of folds to use for cross-validation (CV)
             with k-fold LassoCV or LassoLarsCV (default nfolds=20)
-        standardize= 'on' (default) or 'off' where
-            'on': standardize X using sklearn.preprocessing StandardScaler
-            'off': do not standardize X
+        standardize= True (default) or False where
+            True: standardize X using sklearn.preprocessing StandardScaler
+            False: do not standardize X
         alpha_min= minimum value of range of alphas to evaluate (default=1e-3)
         alpha_max= maximum value of range of alphas to evaluate (default=1e3)
         n_alpha= number of log-spaced alphas to evaluate (default=100)
@@ -1231,7 +1253,7 @@ def lasso(X, y, **kwargs):
                 - LassoLarsBIC: LasspLarsIC using BIC
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
-                - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'standardize': True scaler was used for X, False scaler not used
                 - 'alpha_vs_coef': model coefficients for each X variable
                     as a function of alpha using Lasso
                 - 'alpha_vs_AIC_BIC': AIC and BIC as a function of alpha 
@@ -1279,7 +1301,7 @@ def lasso(X, y, **kwargs):
     # Define default values of input data arguments
     defaults = {
         'nfolds': 20,
-        'standardize': 'on',
+        'standardize': True,
         'alpha_min': 1.0e-3,
         'alpha_max': 1.0e3,
         'n_alpha': 100,
@@ -1354,12 +1376,12 @@ def lasso(X, y, **kwargs):
     X_scaled.index = X.index
     # model_outputs['X_scaled'] = X_scaled                 # standardized X
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
 
     # Specify X to be used for fitting the models 
-    if data['standardize'] == 'on':
+    if data['standardize']:
         X = X_scaled.copy()
-    elif data['standardize'] == 'off':
+    else:
         X = X.copy()
 
     # Calculate the role of alpha vs coefficient values
@@ -1958,9 +1980,9 @@ def ridge(X, y, **kwargs):
 
     OPTIONAL KEYWORD ARGUMENTS
     **kwargs (optional keyword arguments):
-        standardize= 'on' (default) or 'off' where
-            'on': standardize X using sklearn.preprocessing StandardScaler
-            'off': do not standardize X
+        standardize= True (default) or False where
+            True: standardize X using sklearn.preprocessing StandardScaler
+            False: do not standardize X
         alpha_min= minimum value of range of alphas to evaluate (default=1e-3)
         alpha_max= maximum value of range of alphas to evaluate (default=1e3)
         n_alpha= number of log-spaced alphas to evaluate (default=100)
@@ -1978,7 +2000,7 @@ def ridge(X, y, **kwargs):
                 - RidgeVIF: sklearn Ridge using target VIF to find best alpha
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
-                - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'standardize': True scaler was used for X, False scaler not used
                 - 'alpha_vs_coef': model coefficients for each X variable
                     as a function of alpha using Ridge
                 - 'alpha_vs_penalty': penalty factors
@@ -2025,7 +2047,7 @@ def ridge(X, y, **kwargs):
    
     # Define default values of input data arguments
     defaults = {
-        'standardize': 'on',
+        'standardize': True,
         'alpha_min': 1.0e-3,
         'alpha_max': 1.0e3,
         'n_alpha': 100,
@@ -2100,12 +2122,12 @@ def ridge(X, y, **kwargs):
     X_scaled.index = X.index
     # model_outputs['X_scaled'] = X_scaled                 # standardized X
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
 
     # Specify X to be used for fitting the models 
-    if data['standardize'] == 'on':
+    if data['standardize']:
         X = X_scaled.copy()
-    elif data['standardize'] == 'off':
+    else:
         X = X.copy()
 
     # Calculate the role of alpha vs coefficient values
@@ -2497,9 +2519,9 @@ def elastic(X, y, **kwargs):
     **kwargs (optional keyword arguments):
         nfolds= number of folds to use for cross-validation (CV)
             (default nfolds=20)
-        standardize= 'on' (default) or 'off' where
-            'on': standardize X using sklearn.preprocessing StandardScaler
-            'off': do not standardize X
+        standardize= True (default) or False where
+            True: standardize X using sklearn.preprocessing StandardScaler
+            False: do not standardize X
         alpha_min= minimum value of range of alphas to evaluate (default=1e-3)
         alpha_max= maximum value of range of alphas to evaluate (default=1e3)
         n_alpha= number of log-spaced alphas to evaluate (default=100)
@@ -2531,7 +2553,7 @@ def elastic(X, y, **kwargs):
             model_objects is the fitted model object
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
-                - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'standardize': True scaler was used for X, False scaler not used
                 - 'alpha_vs_coef': model coefficients for each X variable
                     as a function of alpha using ElasticNet
                 - 'y_pred': Predicted y values
@@ -2573,7 +2595,7 @@ def elastic(X, y, **kwargs):
     # Define default values of input data arguments
     defaults = {
         'nfolds': 20,
-        'standardize': 'on',
+        'standardize': True,
         'alpha_min': 1.0e-3,
         'alpha_max': 1.0e3,
         'n_alpha': 100,
@@ -2653,12 +2675,12 @@ def elastic(X, y, **kwargs):
     X_scaled.index = X.index
     # model_outputs['X_scaled'] = X_scaled                 # standardized X
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
 
     # Specify X to be used for fitting the models 
-    if data['standardize'] == 'on':
+    if data['standardize']:
         X = X_scaled.copy()
-    elif data['standardize'] == 'off':
+    else:
         X = X.copy()
 
     # ElasticNetCV k-fold cross validation
@@ -2909,9 +2931,9 @@ def stacking(X, y, **kwargs):
 
     OPTIONAL KEYWORD ARGUMENTS
     **kwargs (optional keyword arguments):
-        standardize= 'on' (default) or 'off' where
-            'on': standardize X using sklearn.preprocessing StandardScaler
-            'off': do not standardize X (only used if X is already standardized)
+        standardize= True (default) or False where
+            True: standardize X using sklearn.preprocessing StandardScaler
+            False: do not standardize X (only used if X is already standardized)
         random_state= (default random_state=42)        - initial random seed
 
         meta= 'linear' (default), 'lasso', or 'elastic' 
@@ -2945,7 +2967,7 @@ def stacking(X, y, **kwargs):
             model_objects is the fitted model object
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
-                - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'standardize': True scaler was used for X, False scaler not used
                 - 'y_pred': Predicted y values
                 - 'residuals': Residuals (y-y_pred) for each of the four methods
                 - 'strength': Intercept and coefficients of the 
@@ -2990,7 +3012,7 @@ def stacking(X, y, **kwargs):
     # Define default values of input data arguments
     defaults = {
         'random_state': 42,
-        'standardize': 'on',
+        'standardize': True,
         'meta': 'ridge',
         'lasso': 'on',
         'ridge': 'on',
@@ -3079,12 +3101,12 @@ def stacking(X, y, **kwargs):
     X_scaled.index = X.index
     # model_outputs['X_scaled'] = X_scaled                 # standardized X
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
 
     # Specify X to be used for fitting the models 
-    if data['standardize'] == 'on':
+    if data['standardize']:
         X = X_scaled.copy()
-    elif data['standardize'] == 'off':
+    else:
         X = X.copy()
     
     # Calculate alphas for RidgeCV
@@ -3176,7 +3198,7 @@ def stacking(X, y, **kwargs):
     
     # model objects and outputs returned by stacking
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
     model_outputs['y_pred'] = stats['y_pred']
     model_outputs['residuals'] = stats['residuals']
     model_objects = stacking_regressor
@@ -3298,10 +3320,9 @@ def svr(X, y, **kwargs):
 
     OPTIONAL KEYWORD ARGUMENTS
     **kwargs (optional keyword arguments):
-        standardize= 'on' (default) or 'off' where
-            'on': standardize X using sklearn.preprocessing StandardScaler
-            'off': do not standardize X (only used if X is already standardized)
-        standardize= 'on' (default) or 'off' 
+        standardize= True (default) or False where
+            True: standardize X using sklearn.preprocessing StandardScaler
+            False: do not standardize X (only used if X is already standardized)
         verbose= 'on' (default) or 'off' 
         kernel= 'rbf'      # ‘linear’, ‘poly’, ‘rbf’, ‘sigmoid’, ‘precomputed’} 
                            # or callable, default=’rbf’
@@ -3324,7 +3345,7 @@ def svr(X, y, **kwargs):
             model_objects is the fitted model object
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
-                - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'standardize': True scaler was used for X, False scaler not used
                 - 'y_pred': Predicted y values
                 - 'residuals': Residuals (y-y_pred) for each of the four methods
                 - 'stats': Regression statistics for each model
@@ -3366,7 +3387,7 @@ def svr(X, y, **kwargs):
 
     # Define default values of input data arguments
     defaults = {
-        'standardize': 'on',
+        'standardize': True,
         'verbose': 'on',
         'kernel': 'rbf',
         'degree': 3,
@@ -3442,12 +3463,12 @@ def svr(X, y, **kwargs):
     X_scaled.index = X.index
     # model_outputs['X_scaled'] = X_scaled                 # standardized X
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
 
     # Specify X to be used for fitting the models 
-    if data['standardize'] == 'on':
+    if data['standardize']:
         X = X_scaled.copy()
-    elif data['standardize'] == 'off':
+    else:
         X = X.copy()
     
     model = SVR(
@@ -3494,7 +3515,7 @@ def svr(X, y, **kwargs):
     
     # model objects and outputs returned by stacking
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
     model_outputs['y_pred'] = stats['y_pred']
     model_outputs['residuals'] = stats['residuals']
     model_objects = model
@@ -3651,14 +3672,13 @@ def svr_auto(X, y, **kwargs):
     OPTIONAL KEYWORD ARGUMENTS
     **kwargs (optional keyword arguments):
         verbose= 'on' (default) or 'off'
-        standardize= 'on' (default) or 'off' where
-            'on': standardize X using sklearn.preprocessing StandardScaler
-            'off': do not standardize X (only used if X is already standardized)
+        standardize= True (default) or False where
+            True: standardize X using sklearn.preprocessing StandardScaler
+            False: do not standardize X (only used if X is already standardized)
         random_state= 42,                 # Random seed for reproducibility.
         n_trials= 50,                     # number of optuna trials
         n_splits= 5,                      # number of splits for KFold CV
         gpu= True,                        # Autodetect to use gpu if present
-        standardize= 'on',
         verbose= 'on' (default) or 'off'
 
         # [min, max] ranges of params for model to be optimized by optuna:
@@ -3690,7 +3710,7 @@ def svr_auto(X, y, **kwargs):
             model_objects is the fitted model object
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
-                - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'standardize': True scaler was used for X, False scaler not used
                 - 'optuna_study': optimzed optuna study object
                 - 'best_params': best model hyper-parameters found by optuna
                 - 'y_pred': Predicted y values
@@ -3735,7 +3755,7 @@ def svr_auto(X, y, **kwargs):
         'n_trials': 50,                     # number of optuna trials
         'n_splits': 5,          # number of splits for KFold CV
         'gpu': True,                        # Autodetect to use gpu if present
-        'standardize': 'on',
+        'standardize': True,
         'verbose': 'on',
 
         # params for model that are optimized by optuna
@@ -3819,12 +3839,12 @@ def svr_auto(X, y, **kwargs):
     X_scaled.index = X.index
     # model_outputs['X_scaled'] = X_scaled                 # standardized X
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
 
     # Specify X to be used for fitting the models 
-    if data['standardize'] == 'on':
+    if data['standardize']:
         X = X_scaled.copy()
-    elif data['standardize'] == 'off':
+    else:
         X = X.copy()
 
     # extra params in addition to those being optimized by optuna
@@ -3885,7 +3905,7 @@ def svr_auto(X, y, **kwargs):
     
     # model objects and outputs returned by stacking
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
     model_outputs['y_pred'] = stats['y_pred']
     model_outputs['residuals'] = stats['residuals']
     
@@ -3964,9 +3984,9 @@ def sgd(X, y, **kwargs):
 
     OPTIONAL KEYWORD ARGUMENTS
     **kwargs (optional keyword arguments):
-        standardize= 'on' (default) or 'off' where
-            'on': standardize X using sklearn.preprocessing StandardScaler
-            'off': do not standardize X (only used if X is already standardized)
+        standardize= True (default) or False where
+            True: standardize X using sklearn.preprocessing StandardScaler
+            False: do not standardize X (only used if X is already standardized)
         random_state= (default random_state=42)        - initial random seed
         verbose= 'on' (default) or 'off'
 
@@ -3977,7 +3997,7 @@ def sgd(X, y, **kwargs):
             model_objects is the fitted model object
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
-                - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'standardize': True scaler was used for X, False scaler not used
                 - 'y_pred': Predicted y values
                 - 'residuals': Residuals (y-y_pred) for each of the four methods
                 - 'stats': Regression statistics for each model
@@ -4020,7 +4040,7 @@ def sgd(X, y, **kwargs):
     # Define default values of input data arguments
     defaults = {
         'random_state': 42,
-        'standardize': 'on',
+        'standardize': True,
         'verbose': 'on'
         }
 
@@ -4078,12 +4098,12 @@ def sgd(X, y, **kwargs):
     X_scaled.index = X.index
     # model_outputs['X_scaled'] = X_scaled                 # standardized X
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
 
     # Specify X to be used for fitting the models 
-    if data['standardize'] == 'on':
+    if data['standardize']:
         X = X_scaled.copy()
-    elif data['standardize'] == 'off':
+    else:
         X = X.copy()
     
     model = SGDRegressor(
@@ -4120,7 +4140,7 @@ def sgd(X, y, **kwargs):
     
     # model objects and outputs returned by stacking
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
     model_outputs['y_pred'] = stats['y_pred']
     model_outputs['residuals'] = stats['residuals']
     model_objects = model
@@ -4224,9 +4244,9 @@ def gbr(X, y, **kwargs):
 
     OPTIONAL KEYWORD ARGUMENTS
     **kwargs (optional keyword arguments):
-        standardize= 'on' (default) or 'off' where
-            'on': standardize X using sklearn.preprocessing StandardScaler
-            'off': do not standardize X (only used if X is already standardized)
+        standardize= True (default) or False where
+            True: standardize X using sklearn.preprocessing StandardScaler
+            False: do not standardize X (only used if X is already standardized)
         random_state= (default random_state=42)        - initial random seed
         loss='squared_error',          # Loss function to optimize. 
                                        # Default is 'squared_error' (mean squared error).
@@ -4271,7 +4291,7 @@ def gbr(X, y, **kwargs):
             model_objects is the fitted model object 
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
-                - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'standardize': True scaler was used for X, False scaler not used
                 - 'y_pred': Predicted y values
                 - 'residuals': Residuals (y-y_pred) for each of the four methods
                 - 'stats': Regression statistics for each model
@@ -4307,7 +4327,7 @@ def gbr(X, y, **kwargs):
 
     # Define default values of input data arguments
     defaults = {
-        'standardize': 'on',
+        'standardize': True,
         'verbose': 'on',
 
         # [min, max] range of params optimized by optuna
@@ -4390,12 +4410,12 @@ def gbr(X, y, **kwargs):
     X_scaled.index = X.index
     # model_outputs['X_scaled'] = X_scaled                 # standardized X
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
 
     # Specify X to be used for fitting the models 
-    if data['standardize'] == 'on':
+    if data['standardize']:
         X = X_scaled.copy()
-    elif data['standardize'] == 'off':
+    else:
         X = X.copy()
 
     fitted_model = GradientBoostingRegressor(
@@ -4452,7 +4472,7 @@ def gbr(X, y, **kwargs):
     
     # model objects and outputs returned by stacking
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
     model_outputs['y_pred'] = stats['y_pred']
     model_outputs['residuals'] = stats['residuals']
     # model_objects = model
@@ -4623,7 +4643,7 @@ def gbr_auto(X, y, **kwargs):
     **kwargs (optional keyword arguments):
         random_state= 42,    # initial random seed
         n_trials= 50,         # number of optuna trials
-        standardize= 'on',    # standardize X
+        standardize= True,    # standardize X
         verbose= 'on',        # 'on' to display summary stats and residual plots
         n_splits= 5,          # number of splits for KFold CV
         gpu= True,            # Autodetect to use gpu if present
@@ -4664,7 +4684,7 @@ def gbr_auto(X, y, **kwargs):
             model_objects is the fitted model object
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
-                - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'standardize': True scaler was used for X, False scaler not used
                 - 'optuna_study': optimzed optuna study object
                 - 'best_params': best model hyper-parameters found by optuna
                 - 'y_pred': Predicted y values
@@ -4706,7 +4726,7 @@ def gbr_auto(X, y, **kwargs):
     defaults = {
         'random_state':  42,    # initial random seed
         'n_trials': 50,         # number of optuna trials
-        'standardize': 'on',    # standardize X
+        'standardize': True,    # standardize X
         'verbose': 'on',        # 'on' to display summary stats and residual plots
         'n_splits': 5,          # number of splits for KFold CV
         'gpu': True,            # Autodetect to use gpu if present
@@ -4815,12 +4835,12 @@ def gbr_auto(X, y, **kwargs):
     X_scaled.index = X.index
     # model_outputs['X_scaled'] = X_scaled                 # standardized X
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
 
     # Specify X to be used for fitting the models 
-    if data['standardize'] == 'on':
+    if data['standardize']:
         X = X_scaled.copy()
-    elif data['standardize'] == 'off':
+    else:
         X = X.copy()
 
     extra_params = {
@@ -4887,7 +4907,7 @@ def gbr_auto(X, y, **kwargs):
     
     # model objects and outputs returned by stacking
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
     model_outputs['y_pred'] = stats['y_pred']
     model_outputs['residuals'] = stats['residuals']
     # model_objects = model
@@ -4968,9 +4988,9 @@ def xgb(X, y, **kwargs):
     OPTIONAL KEYWORD ARGUMENTS
     **kwargs (optional keyword arguments):
         verbose= 'on' (default) or 'off'
-        standardize= 'on' (default) or 'off' where
-            'on': standardize X using sklearn.preprocessing StandardScaler
-            'off': do not standardize X (only used if X is already standardized)
+        standardize= True (default) or False where
+            True: standardize X using sklearn.preprocessing StandardScaler
+            False: do not standardize X (only used if X is already standardized)
         gpu= True (default) or False to autodetect if the computer has a gpu and use it
 
         random_state= 42,           # Random seed for reproducibility.
@@ -5004,7 +5024,7 @@ def xgb(X, y, **kwargs):
             model_objects is the fitted model object
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
-                - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'standardize': True scaler was used for X, False scaler not used
                 - 'y_pred': Predicted y values
                 - 'residuals': Residuals (y-y_pred) for each of the four methods
                 - 'stats': Regression statistics for each model
@@ -5042,7 +5062,7 @@ def xgb(X, y, **kwargs):
     # Define default values of input data arguments
     defaults = {
         'random_state': 42,           # Random seed for reproducibility.
-        'standardize': 'on',
+        'standardize': True,
         'verbose': 'on',
         'gpu': True,                  # Autodetect if the computer has a gpu, if no gpu is detected then cpu will be used
         'n_estimators': 100,          # Number of boosting rounds (trees).
@@ -5132,12 +5152,12 @@ def xgb(X, y, **kwargs):
     X_scaled.index = X.index
     # model_outputs['X_scaled'] = X_scaled                 # standardized X
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
 
     # Specify X to be used for fitting the models 
-    if data['standardize'] == 'on':
+    if data['standardize']:
         X = X_scaled.copy()
-    elif data['standardize'] == 'off':
+    else:
         X = X.copy()
 
     fitted_model = XGBRegressor(
@@ -5198,7 +5218,7 @@ def xgb(X, y, **kwargs):
     
     # model objects and outputs returned by stacking
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
     model_outputs['y_pred'] = stats['y_pred']
     model_outputs['residuals'] = stats['residuals']
     # model_objects = model
@@ -5340,9 +5360,9 @@ def xgb_auto(X, y, **kwargs):
     OPTIONAL KEYWORD ARGUMENTS
     **kwargs (optional keyword arguments):
         verbose= 'on' (default) or 'off'
-        standardize= 'on' (default) or 'off' where
-            'on': standardize X using sklearn.preprocessing StandardScaler
-            'off': do not standardize X (only used if X is already standardized)
+        standardize= True (default) or False where
+            True: standardize X using sklearn.preprocessing StandardScaler
+            False: do not standardize X (only used if X is already standardized)
         gpu= True (default) or False to autodetect if the computer has a gpu and use it
         n_trials= 50,                     # number of optuna trials
         n_splits= 5,                      # number of splits for KFold CV
@@ -5384,7 +5404,7 @@ def xgb_auto(X, y, **kwargs):
             model_objects is the fitted model object
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
-                - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'standardize': True scaler was used for X, False scaler not used
                 - 'optuna_study': optimzed optuna study object
                 - 'best_params': best model hyper-parameters found by optuna
                 - 'y_pred': Predicted y values
@@ -5425,7 +5445,7 @@ def xgb_auto(X, y, **kwargs):
     # Define default values of input data arguments
     defaults = {
         'n_trials': 50,                     # number of optuna trials
-        'standardize': 'on',
+        'standardize': True,
         'verbose': 'on',
         'gpu': True,                        # Autodetect to use gpu if present
         'n_splits': 5,          # number of splits for KFold CV
@@ -5522,12 +5542,12 @@ def xgb_auto(X, y, **kwargs):
     X_scaled.index = X.index
     # model_outputs['X_scaled'] = X_scaled                 # standardized X
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
 
     # Specify X to be used for fitting the models 
-    if data['standardize'] == 'on':
+    if data['standardize']:
         X = X_scaled.copy()
-    elif data['standardize'] == 'off':
+    else:
         X = X.copy()
 
     extra_params = {
@@ -5594,7 +5614,7 @@ def xgb_auto(X, y, **kwargs):
     
     # model objects and outputs returned by stacking
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
     model_outputs['y_pred'] = stats['y_pred']
     model_outputs['residuals'] = stats['residuals']
     # model_objects = model
@@ -5675,9 +5695,9 @@ def lgbm(X, y, **kwargs):
     OPTIONAL KEYWORD ARGUMENTS
     **kwargs (optional keyword arguments):
         verbose= 'on' (default) or 'off'
-        standardize= 'on' (default) or 'off' where
-            'on': standardize X using sklearn.preprocessing StandardScaler
-            'off': do not standardize X (only used if X is already standardized)
+        standardize= True (default) or False where
+            True: standardize X using sklearn.preprocessing StandardScaler
+            False: do not standardize X (only used if X is already standardized)
         boosting_type='gbdt',  # Gradient Boosting Decision Tree (default boosting method)
         num_leaves=31,         # Maximum number of leaves in one tree
         max_depth=-1,          # No limit on tree depth (-1 means no limit)
@@ -5706,7 +5726,7 @@ def lgbm(X, y, **kwargs):
             model_objects is the fitted model object
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
-                - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'standardize': True scaler was used for X, False scaler not used
                 - 'y_pred': Predicted y values
                 - 'residuals': Residuals (y-y_pred) for each of the four methods
                 - 'stats': Regression statistics for each model
@@ -5744,7 +5764,7 @@ def lgbm(X, y, **kwargs):
     # Define default values of input data arguments
     defaults = {
         'random_state': 42,       # Random seed for reproducibility
-        'standardize': 'on',
+        'standardize': True,
         'verbose': 'on',
         'verbosity': -1,  # -1 to turn off lgbm warnings
         'boosting_type': 'gbdt',  # Gradient Boosting Decision Tree (default boosting method)
@@ -5821,12 +5841,12 @@ def lgbm(X, y, **kwargs):
     X_scaled.index = X.index
     # model_outputs['X_scaled'] = X_scaled                 # standardized X
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
 
     # Specify X to be used for fitting the models 
-    if data['standardize'] == 'on':
+    if data['standardize']:
         X = X_scaled.copy()
-    elif data['standardize'] == 'off':
+    else:
         X = X.copy()
 
     fitted_model = LGBMRegressor(
@@ -5884,7 +5904,7 @@ def lgbm(X, y, **kwargs):
     
     # model objects and outputs returned by stacking
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
     model_outputs['y_pred'] = stats['y_pred']
     model_outputs['residuals'] = stats['residuals']
     # model_objects = model
@@ -5975,7 +5995,7 @@ def catboost(X, y, **kwargs):
     OPTIONAL KEYWORD ARGUMENTS
     **kwargs (optional keyword arguments):
         random_state= 42,    # initial random seed
-        standardize= 'on',    # standardize X
+        standardize= True,    # standardize X
         verbose= 'on',        # 'on' to display summary stats and residual plots
         gpu= False,           # Autodetect to use gpu if present
         thread_count= -1,     # number of CPU cores to use (-1 for all cores)
@@ -6004,7 +6024,7 @@ def catboost(X, y, **kwargs):
             model_objects is the fitted model object 
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
-                - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'standardize': True scaler was used for X, False scaler not used
                 - 'y_pred': Predicted y values
                 - 'residuals': Residuals (y-y_pred) for each of the four methods
                 - 'stats': Regression statistics for each model
@@ -6041,7 +6061,7 @@ def catboost(X, y, **kwargs):
     # Define default values of input data arguments
     defaults = {
         'random_state': 42,     # Random seed for reproducibility.
-        'standardize': 'on',    # standardize X
+        'standardize': True,    # standardize X
         'verbose': 'on',        # 'on' to display stats and residual plots
         'gpu': False,           # Autodetect to use gpu if present
         'devices': '0',         # Which GPU to use (0 to use first GPU)
@@ -6124,12 +6144,12 @@ def catboost(X, y, **kwargs):
     X_scaled.index = X.index
     # model_outputs['X_scaled'] = X_scaled                 # standardized X
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
 
     # Specify X to be used for fitting the models 
-    if data['standardize'] == 'on':
+    if data['standardize']:
         X = X_scaled.copy()
-    elif data['standardize'] == 'off':
+    else:
         X = X.copy()
 
     params = {        
@@ -6192,7 +6212,7 @@ def catboost(X, y, **kwargs):
     
     # model objects and outputs returned by stacking
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
     model_outputs['y_pred'] = stats['y_pred']
     model_outputs['residuals'] = stats['residuals']
     # model_objects = model
@@ -6348,7 +6368,7 @@ def catboost_auto(X, y, **kwargs):
     **kwargs (optional keyword arguments):
         random_state= 42,    # initial random seed
         n_trials= 50,         # number of optuna trials
-        standardize= 'on',    # standardize X
+        standardize= True,    # standardize X
         verbose= 'on',        # 'on' to display summary stats and residual plots
         n_splits= 5,          # number of splits for KFold CV
         gpu= False,           # Autodetect to use gpu if present
@@ -6378,7 +6398,7 @@ def catboost_auto(X, y, **kwargs):
             model_objects is the fitted model object
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
-                - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'standardize': True scaler was used for X, False scaler not used
                 - 'optuna_study': optimzed optuna study object
                 - 'best_params': best model hyper-parameters found by optuna
                 - 'y_pred': Predicted y values
@@ -6421,7 +6441,7 @@ def catboost_auto(X, y, **kwargs):
     defaults = {
         'random_state': 42,     # Random seed for reproducibility.
         'n_trials': 50,         # number of optuna trials
-        'standardize': 'on',    # standardize X
+        'standardize': True,    # standardize X
         'verbose': 'on',        # 'on' to display stats and residual plots
         'gpu': False,           # Autodetect to use gpu if present
         'n_splits': 5,          # number of splits for KFold CV
@@ -6504,12 +6524,12 @@ def catboost_auto(X, y, **kwargs):
     X_scaled.index = X.index
     # model_outputs['X_scaled'] = X_scaled                 # standardized X
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
 
     # Specify X to be used for fitting the models 
-    if data['standardize'] == 'on':
+    if data['standardize']:
         X = X_scaled.copy()
-    elif data['standardize'] == 'off':
+    else:
         X = X.copy()
 
     extra_params = {
@@ -6569,7 +6589,7 @@ def catboost_auto(X, y, **kwargs):
     
     # model objects and outputs returned by stacking
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
     model_outputs['y_pred'] = stats['y_pred']
     model_outputs['residuals'] = stats['residuals']
     # model_objects = model
@@ -6650,7 +6670,7 @@ def forest(X, y, **kwargs):
     OPTIONAL KEYWORD ARGUMENTS
     **kwargs (optional keyword arguments):
         n_trials= 50,                     # number of optuna trials
-        standardize= 'on',
+        standardize= True,
         verbose= 'on',                    # 'on' to display all 
         gpu= True,                        # Autodetect to use gpu if present
         n_splits= 5,                      # number of splits for KFold CV
@@ -6694,7 +6714,7 @@ def forest(X, y, **kwargs):
             model_objects is the fitted model object
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
-                - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'standardize': True scaler was used for X, False scaler not used
                 - 'y_pred': Predicted y values
                 - 'residuals': Residuals (y-y_pred) for each of the four methods
                 - 'stats': Regression statistics for each model
@@ -6731,7 +6751,7 @@ def forest(X, y, **kwargs):
     # Define default values of input data arguments
     defaults = {
         'n_trials': 50,                     # number of optuna trials
-        'standardize': 'on',
+        'standardize': True,
         'verbose': 'on',
         'gpu': True,                        # Autodetect to use gpu if present
         'n_splits': 5,                      # number of splits for KFold CV
@@ -6832,12 +6852,12 @@ def forest(X, y, **kwargs):
     X_scaled.index = X.index
     # model_outputs['X_scaled'] = X_scaled                 # standardized X
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
 
     # Specify X to be used for fitting the models 
-    if data['standardize'] == 'on':
+    if data['standardize']:
         X = X_scaled.copy()
-    elif data['standardize'] == 'off':
+    else:
         X = X.copy()
 
     params = {
@@ -6897,7 +6917,7 @@ def forest(X, y, **kwargs):
     
     # model objects and outputs returned by stacking
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
     model_outputs['y_pred'] = stats['y_pred']
     model_outputs['residuals'] = stats['residuals']
     # model_objects = model
@@ -7034,7 +7054,7 @@ def forest_auto(X, y, **kwargs):
     OPTIONAL KEYWORD ARGUMENTS
     **kwargs (optional keyword arguments):
         n_trials= 50,                     # number of optuna trials
-        standardize= 'on',
+        standardize= True,
         verbose= 'on',                    # 'on' to display all 
         gpu= True,                        # Autodetect to use gpu if present
         n_splits= 5,                      # number of splits for KFold CV
@@ -7078,7 +7098,7 @@ def forest_auto(X, y, **kwargs):
             model_objects is the fitted model object
             model_outputs is a dictionary of the following outputs: 
                 - 'scaler': sklearn.preprocessing StandardScaler for X
-                - 'standardize': 'on' scaler was used for X, 'off' scaler not used
+                - 'standardize': True scaler was used for X, False scaler not used
                 - 'optuna_study': optimzed optuna study object
                 - 'best_params': best model hyper-parameters found by optuna
                 - 'y_pred': Predicted y values
@@ -7117,7 +7137,7 @@ def forest_auto(X, y, **kwargs):
     # Define default values of input data arguments
     defaults = {
         'n_trials': 50,                     # number of optuna trials
-        'standardize': 'on',
+        'standardize': True,
         'verbose': 'on',
         'gpu': True,                        # Autodetect to use gpu if present
         'n_splits': 5,                      # number of splits for KFold CV
@@ -7219,12 +7239,12 @@ def forest_auto(X, y, **kwargs):
     X_scaled.index = X.index
     # model_outputs['X_scaled'] = X_scaled                 # standardized X
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
 
     # Specify X to be used for fitting the models 
-    if data['standardize'] == 'on':
+    if data['standardize']:
         X = X_scaled.copy()
-    elif data['standardize'] == 'off':
+    else:
         X = X.copy()
 
     extra_params = {
@@ -7285,7 +7305,7 @@ def forest_auto(X, y, **kwargs):
     
     # model objects and outputs returned by stacking
     model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
+    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
     model_outputs['y_pred'] = stats['y_pred']
     model_outputs['residuals'] = stats['residuals']
     # model_objects = model
