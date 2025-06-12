@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.56"
+__version__ = "1.1.57"
 
 def show_optuna(study):
 
@@ -7742,7 +7742,7 @@ def knn_objective(trial, X, y, **kwargs):
         # force input value of pca_transform= True or False
         pca_transform = kwargs['pca_transform']
     if pca_transform:
-        n_components = trial.suggest_int("n_components", 5, X.shape[1])  
+        n_components = trial.suggest_int("n_components", min(X.shape[1], 5), X.shape[1])  
         pca = PCA(n_components=n_components).fit(X)
         X = pd.DataFrame(pca.transform(X), columns= [f"PC_{i+1}" for i in range(n_components)])
         X.index = y.index
