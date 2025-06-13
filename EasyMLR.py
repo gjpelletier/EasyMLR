@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.61"
+__version__ = "1.1.62"
 
 def show_optuna(study):
 
@@ -259,7 +259,7 @@ def nnn(x):
     
     import numpy as np
 
-    result = np.count_nonzero(~np.isnan(x))
+    result = np.count_nonzero(not np.isnan(x))
     
     return result
 
@@ -2147,7 +2147,7 @@ def ridge(X, y, **kwargs):
         ridge.fit(X, y)
         coefs.append(ridge.coef_)
 
-    if ~has_dummies:
+    if not has_dummies:
         pen_factors = alphas / n_samples   # use this line if using sklearn Ridge
         alpha_vs_coef = pd.DataFrame({
             'alpha': alphas,
@@ -2175,7 +2175,7 @@ def ridge(X, y, **kwargs):
     model_cv_mse_each_fold = model_cv.cv_results_  # Shape: (n_samples, n_alphas)
     model_cv_mse_mean = np.mean(model_cv.cv_results_, axis=0)
 
-    if ~has_dummies:
+    if not has_dummies:
         # RidgeVIF - Ridge with VIF target
         vif_target = data['vif_target']
         rmse_vif_res = np.sqrt(np.sum((vif_target-vifs_)**2,1))
@@ -2198,7 +2198,7 @@ def ridge(X, y, **kwargs):
         plt.savefig("Ridge_alpha_vs_coef.png", dpi=300)
 
     # Plot the VIF of coefficients as function of alpha
-    if ~has_dummies:
+    if not has_dummies:
         if data['verbose'] == 'on' and data['verbose'] != 1:
             # model = model_vif
             plt.figure()
@@ -2251,7 +2251,7 @@ def ridge(X, y, **kwargs):
     
     # Calculate regression stats
     stats_cv = stats_given_model(X, y, model_cv)    
-    if ~has_dummies:
+    if not has_dummies:
         stats_vif = stats_given_model(X, y, model_vif)
 
     # residual plot for training error
@@ -2262,7 +2262,7 @@ def ridge(X, y, **kwargs):
         rmse_cv = stats_cv['RMSE']
         plt.figure()
         plt.scatter(y_pred_cv, y, s=40, label=('RidgeCV (RMSE={:.2f})'.format(rmse_cv)))
-        if ~has_dummies:
+        if not has_dummies:
             y_pred_vif = stats_vif['y_pred']
             res_vif = stats_vif['residuals']
             rmse_vif = stats_vif['RMSE']
@@ -2282,7 +2282,7 @@ def ridge(X, y, **kwargs):
         rmse_cv = stats_cv['RMSE']
         plt.figure()
         plt.scatter(y_pred_cv, (res_cv), s=40, label=('RidgeCV (RMSE={:.2f})'.format(rmse_cv)))
-        if ~has_dummies:
+        if not has_dummies:
             y_pred_vif = stats_vif['y_pred']
             res_vif = stats_vif['residuals']
             rmse_vif = stats_vif['RMSE']
@@ -2309,7 +2309,7 @@ def ridge(X, y, **kwargs):
     list2_cv = list(stats_cv['popt']['param'])
     list3_cv = list1_cv + list2_cv
 
-    if ~has_dummies:
+    if not has_dummies:
         list1_vif = [best_alpha_vif, stats_vif["rsquared"], stats_vif["adj_rsquared"], 
                            stats_vif["n_samples"], stats_vif["df"], stats_vif["dfn"], 
                            stats_vif["Fstat"], stats_vif["pvalue"], stats_vif["RMSE"], 
@@ -2382,7 +2382,7 @@ def ridge(X, y, **kwargs):
         stats.set_index('Statistic',inplace=True)
         model_outputs['stats'] = stats
 
-    if ~has_dummies:
+    if not has_dummies:
         # Calculate VIF of X at Ridge regression alpha values
         alphas = [model_outputs['stats']['RidgeCV']['alpha'],
                       model_outputs['stats']['RidgeVIF']['alpha'],] 
@@ -2396,7 +2396,7 @@ def ridge(X, y, **kwargs):
     # Calculate the covariance matrix of the features
     popt_all = {}
     
-    if ~has_dummies:
+    if not has_dummies:
         pcov_all = {}
         vif_all = {}
     
@@ -2410,7 +2410,7 @@ def ridge(X, y, **kwargs):
         if model_.coef_[i]==0:
             X_ = X_.drop(col[i], axis = 1)
             popt = popt.drop(index=i+1)
-    if ~has_dummies:
+    if not has_dummies:
         X__ = sm.add_constant(X_)    # Add a constant for the intercept
         pcov = pd.DataFrame(np.cov(X__, rowvar=False), index=X__.columns)
         pcov.columns = X__.columns
@@ -2424,7 +2424,7 @@ def ridge(X, y, **kwargs):
         vif.set_index('Feature',inplace=True)
         vif_all["RidgeCV"] = vif
 
-    if ~has_dummies:
+    if not has_dummies:
         # RidgeVIF
         model_ = model_objects['RidgeVIF']
         popt = stats_vif['popt'].copy()
@@ -2452,7 +2452,7 @@ def ridge(X, y, **kwargs):
     # save vif and pcov in model_outputs
     model_outputs['popt'] = popt_all
 
-    if ~has_dummies:
+    if not has_dummies:
         model_outputs['pcov'] = pcov_all
         model_outputs['vif'] = vif_all
         # Make big VIF table of all models in one table
@@ -2482,7 +2482,7 @@ def ridge(X, y, **kwargs):
             print('')
             print(model_outputs['popt_table'].to_markdown(index=True))
             print('')
-            if ~has_dummies:
+            if not has_dummies:
                 print("Variance Inflation Factors model_outputs['vif']:")
                 print("Note: VIF>5 indicates excessive collinearity")
                 print('')
@@ -7764,7 +7764,7 @@ def knn_objective(trial, X, y, **kwargs):
     score = cross_val_score(model, X, y, cv=cv, scoring="neg_root_mean_squared_error")    
 
     # prevent over-fitting of the train data
-    if ~kwargs['allow_overfit']:
+    if not kwargs['allow_overfit']:
         model.fit(X, y)
         train_pred = model.predict(X)
         train_mse = mean_squared_error(y, train_pred)    
