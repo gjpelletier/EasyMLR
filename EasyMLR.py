@@ -7407,7 +7407,7 @@ def knn(X, y, **kwargs):
         algorithm= "auto",                # algorithm    
         
         # model extra_params that are optional user-specified
-        n_jobs= -1,                       # number of jobs to run in parallel                                            # -1 means use all cpu cores    
+        n_jobs= -1,                       # number of jobs to run in parallel    
         metric_params= None               # for user-specified metrics
 
     Standardization is generally recommended
@@ -7481,7 +7481,7 @@ def knn(X, y, **kwargs):
         'algorithm': "auto",                # algorithm    
         
         # model extra_params that are optional user-specified
-        'n_jobs': -1,                       # number of jobs to run in parallel                                            # -1 means use all cpu cores    
+        'n_jobs': -1,                       # number of jobs to run in parallel    
         'metric_params': None               # for user-specified metrics
 
     }
@@ -7594,7 +7594,7 @@ def knn(X, y, **kwargs):
 
     extra_params = {
         # extra_params that are optional user-specified
-        'n_jobs': data['n_jobs'],                       # number of jobs to run in parallel                                            # -1 means use all cpu cores    
+        'n_jobs': data['n_jobs'],                       # number of jobs to run in parallel    
         'metric_params': data['metric_params']               # for user-specified metrics
     }
     
@@ -7824,7 +7824,7 @@ def knn_auto(X, y, **kwargs):
         algorithm= ["ball_tree", "kd_tree", "brute"],    # algorithm    
         
         # model extra_params that are optional user-specified
-        n_jobs= -1,                       # number of jobs to run in parallel                                            # -1 means use all cpu cores    
+        n_jobs= -1,                       # number of jobs to run in parallel    
         metric_params= None               # for user-specified metrics
 
     Standardization is generally recommended
@@ -7907,7 +7907,7 @@ def knn_auto(X, y, **kwargs):
         'algorithm': ["ball_tree", "kd_tree", "brute"],    # algorithm    
         
         # model extra_params that are optional user-specified
-        'n_jobs': -1,                       # number of jobs to run in parallel                                            # -1 means use all cpu cores    
+        'n_jobs': -1,                       # number of jobs to run in parallel    
         'metric_params': None               # for user-specified metrics
     }
 
@@ -7987,7 +7987,7 @@ def knn_auto(X, y, **kwargs):
 
     extra_params = {
         # extra_params that are optional user-specified
-        'n_jobs': data['n_jobs'],                       # number of jobs to run in parallel                                            # -1 means use all cpu cores    
+        'n_jobs': data['n_jobs'],                       # number of jobs to run in parallel    
         'metric_params': data['metric_params']               # for user-specified metrics
     }
 
