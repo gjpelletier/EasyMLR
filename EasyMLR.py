@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.67"
+__version__ = "1.1.68"
 
 def show_optuna(study):
 
@@ -83,7 +83,7 @@ def show_optuna(study):
         and 'leaf_size' in study.best_params):
         optuna.visualization.matplotlib.plot_contour(study, params=["n_neighbors", "leaf_size"])
         plt.title("n_neighbors vs. leaf_size")
-        plt.savefig('optuna_min_samples_leaf_vs_max_features.png', 
+        plt.savefig('optuna_n_neighbors_vs_leaf_size.png', 
                     dpi=300, bbox_inches='tight') 
         plt.show()
     
