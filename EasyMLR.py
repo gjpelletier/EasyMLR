@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.60"
+__version__ = "1.1.61"
 
 def show_optuna(study):
 
