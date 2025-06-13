@@ -15,7 +15,7 @@ The EasyMLR module includes the following main Python functions to facilitate th
  - **forest** - RandomForestRegressor with user-specified hyperparameters
  - **svr_auto** - SVR with automatic cross-validated optimization of the hyperparameters
  - **svr** - SVR with user-specified hyperparameters
- - **knn_auto** - KNeighborsRegressor with automatic cross-validated optimization of the hyperparameters
+ - **knn_auto** - KNeighborsRegressor with automatic cross-validated optimization of the hyperparameters and optional PCA transformation
  - **knn** - KNeighborsRegressor with user-specified hyperparameters
  - **lgbm** - LGBMRegressor with user-specified hyperparameters
  - **stacking** - StackingRegressor
