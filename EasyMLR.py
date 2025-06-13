@@ -55,8 +55,6 @@ def show_optuna(study):
         and 'max_depth' in study.best_params):
         optuna.visualization.matplotlib.plot_contour(study, params=["learning_rate", "max_depth"])
         plt.title("Learning Rate vs. Max Depth")
-        # plt.savefig('optuna_learning_rate_vs_max_depth.png', 
-        #             dpi=plt.gcf().dpi, bbox_inches='tight') 
         plt.savefig('optuna_learning_rate_vs_max_depth.png', 
                     dpi=300, bbox_inches='tight') 
         plt.show()
@@ -64,8 +62,6 @@ def show_optuna(study):
         and 'depth' in study.best_params):
         optuna.visualization.matplotlib.plot_contour(study, params=["learning_rate", "depth"])
         plt.title("Learning Rate vs. Depth")
-        # plt.savefig('optuna_learning_rate_vs_depth.png', 
-        #             dpi=plt.gcf().dpi, bbox_inches='tight') 
         plt.savefig('optuna_learning_rate_vs_depth.png', 
                     dpi=300, bbox_inches='tight') 
         plt.show()
@@ -73,8 +69,6 @@ def show_optuna(study):
         and 'epsilon' in study.best_params):
         optuna.visualization.matplotlib.plot_contour(study, params=["C", "epsilon"])
         plt.title("C vs. epsilon")
-        # plt.savefig('optuna_C_vs_epsilon.png', 
-        #             dpi=plt.gcf().dpi, bbox_inches='tight') 
         plt.savefig('optuna_C_vs_epsilon.png', 
                     dpi=300, bbox_inches='tight') 
         plt.show()
@@ -82,8 +76,13 @@ def show_optuna(study):
         and 'max_features' in study.best_params):
         optuna.visualization.matplotlib.plot_contour(study, params=["min_samples_leaf", "max_features"])
         plt.title("min_samples_leaf vs. max_features")
-        # plt.savefig('optuna_C_vs_epsilon.png', 
-        #             dpi=plt.gcf().dpi, bbox_inches='tight') 
+        plt.savefig('optuna_min_samples_leaf_vs_max_features.png', 
+                    dpi=300, bbox_inches='tight') 
+        plt.show()
+    elif ('n_neighbors' in study.best_params 
+        and 'leaf_size' in study.best_params):
+        optuna.visualization.matplotlib.plot_contour(study, params=["n_neighbors", "leaf_size"])
+        plt.title("n_neighbors vs. leaf_size")
         plt.savefig('optuna_min_samples_leaf_vs_max_features.png', 
                     dpi=300, bbox_inches='tight') 
         plt.show()
