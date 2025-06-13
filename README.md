@@ -21,10 +21,10 @@ The EasyMLR module includes the following main Python functions to facilitate th
  - **stacking** - StackingRegressor
  - **stepwise** - Stepwise multiple linear regression to minimize MSE, AIC, or BIC
  
-The functions in EasyMLR allow the user to write one line of python code to provide the following:
+The functions in EasyMLR allow the user to write one line of high-level python code to provide the following:
 
 - final fitted model object
-- regression summary statistics of the best fit model (e.g. r-squared, adjusted r-squared, RMSE of residuals, p-value of the F-statistic, AIC, BIC, alpha, etc.)
+- regression summary statistics of the best fit model (e.g. r-squared, adjusted r-squared, RMSE of residuals, p-value of the F-statistic, AIC, BIC, alpha, etc., if applicable)
 - best fit intercept and model coefficients (if applicable)
 - variance  inflation factors (if applicable)
 - plots of predicted vs actual and predicted vs residuals
@@ -32,7 +32,7 @@ The functions in EasyMLR allow the user to write one line of python code to prov
 - automatic cross-validated Bayesian optimization of hyperparameters (XGBoost, CatBoost, GradientBoostingRegressor, RandomForestRegressor, and SVR)
 - show plots of optuna optimization history, hyperparameter importance, and contour plots of relationships between hyperparameters and MSE 
 - automatic standardization of X and output of the scaler (optional)
-- automatic PCA transform of X with KNN regression and output of the optimal fitted PCA transformer (optional, knn_auto)
+- automatic PCA transform of X with KNN regression and output of the optimized fitted PCA transformer (optional, knn_auto and knn)
 - automatic detection and use of GPU for computations (XGBoost and CatBoost)
 
 ### Lasso
