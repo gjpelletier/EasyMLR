@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.57"
+__version__ = "1.1.58"
 
 def show_optuna(study):
 
@@ -7704,35 +7704,13 @@ def knn_objective(trial, X, y, **kwargs):
     from sklearn.neighbors import KNeighborsRegressor
     from sklearn.feature_selection import SelectKBest, mutual_info_regression
     from sklearn.decomposition import PCA
+    from sklearn.metrics import mean_squared_error
     
     # Set global random seed
     np.random.seed(kwargs['random_state'])
 
     # Make a copy of X to prevent changes in the calling function
     # X = X.copy()
-
-    '''
-    # Feature Selection: Optimize number of features before PCA
-    if isinstance(kwargs['feature_selection'], list):
-        feature_selection = trial.suggest_categorical('feature_selection', kwargs['feature_selection']) 
-    else:
-        feature_selection = kwargs['feature_selection']    
-    # if kwargs['feature_selection'] == 'on':
-    # if kwargs['feature_selection']:
-    if feature_selection:
-        num_features = trial.suggest_int("num_features", 5, X.shape[1])  # Select top features
-        selector = SelectKBest(mutual_info_regression, k=num_features)
-        # X_selected = selector.fit_transform(X, y)
-        X = selector.fit_transform(X, y)
-        # Get indices of selected features
-        selected_indices = selector.get_support(indices=True)
-        # Get names of selected features
-        # feature_names = [f"Feature_{i}" for i in range(X.shape[1])]  # Assign names to features
-        feature_names = kwargs['feature_names']
-        selected_features = np.array(feature_names)[selected_indices]
-    else:
-        selected_features = kwargs['feature_names']
-    '''
 
     # PCA Transformation: Optimize number of components
     if isinstance(kwargs['pca_transform'], list):
@@ -7742,7 +7720,7 @@ def knn_objective(trial, X, y, **kwargs):
         # force input value of pca_transform= True or False
         pca_transform = kwargs['pca_transform']
     if pca_transform:
-        n_components = trial.suggest_int("n_components", min(X.shape[1], 5), X.shape[1])  
+        n_components = trial.suggest_int("n_components", 5, X.shape[1])  
         pca = PCA(n_components=n_components).fit(X)
         X = pd.DataFrame(pca.transform(X), columns= [f"PC_{i+1}" for i in range(n_components)])
         X.index = y.index
@@ -7780,16 +7758,24 @@ def knn_objective(trial, X, y, **kwargs):
 
     # Train model with CV
     model = KNeighborsRegressor(**params, **extra_params)
+
     score = cross_val_score(model, X, y, cv=cv, scoring="neg_root_mean_squared_error")    
 
+    # prevent over-fitting of the train data
+    if ~kwargs['allow_overfit']:
+        model.fit(X, y)
+        train_pred = model.predict(X)
+        train_mse = mean_squared_error(y, train_pred)    
+        if train_mse == 0 or train_mse < kwargs['tol']:
+            raise optuna.exceptions.TrialPruned(
+                "Training MSE is zero — likely overfitting")
+
     # Store additional outputs
-    # trial.set_user_attr("feature_selection", feature_selection)
-    # trial.set_user_attr("selected_features", selected_features.tolist())
     trial.set_user_attr("pca_transform", pca_transform)
     trial.set_user_attr("pca", pca)
     trial.set_user_attr("n_components", n_components)
     trial.set_user_attr("X_opt", X)
-    
+
     return np.mean(score)
     
 def knn_auto(X, y, **kwargs):
@@ -7819,6 +7805,8 @@ def knn_auto(X, y, **kwargs):
         gpu= True,                        # Autodetect to use gpu if present
         n_splits= 5,                      # number of splits for KFold CV
         pruning= False,                   # prune poor optuna trials
+        allow_overfit= False,             # allow optuna to overfit train data
+        tol= 1e-6,                        # tolerance for overfit
 
         # user params that are optimized by optuna
         pca_transform= [True, False],     # PCA transform X
@@ -7898,7 +7886,9 @@ def knn_auto(X, y, **kwargs):
         'gpu': True,                        # Autodetect to use gpu if present
         'n_splits': 5,                      # number of splits for KFold CV
         'pruning': False,                   # prune poor optuna trials
-
+        'allow_overfit': False,             # allow optuna to overfit train data
+        'tol': 1e-6,                        # tolerance for overfit
+        
         # user params that are optimized by optuna
         'pca_transform': [True, False],     # optuna chooses if PCA transform
         # 'pca_transform': True,            # force PCA transform
@@ -7984,10 +7974,8 @@ def knn_auto(X, y, **kwargs):
     X_scaled = pd.DataFrame(X_scaled, columns=X.columns)
     # Copy index from unscaled to scaled dataframes
     X_scaled.index = X.index
-    # model_outputs['X_scaled'] = X_scaled                 # standardized X
-    model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # 'on': X_scaled was used to fit, 'off': X was used
-
+    model_outputs['scaler'] = scaler                     
+    model_outputs['standardize'] = data['standardize']   
     
     # Specify X to be used for fitting the models 
     if data['standardize']:
@@ -8004,21 +7992,6 @@ def knn_auto(X, y, **kwargs):
     print('Running optuna to find best parameters, could take a few minutes, please wait...')
     optuna.logging.set_verbosity(optuna.logging.ERROR)
 
-    '''
-    # study = optuna.create_study(direction="maximize")
-    # study = optuna.create_study(direction="maximize", pruner=optuna.pruners.MedianPruner())
-    # if data['pruning'] == 'on':
-    if data['pruning']:
-        study = optuna.create_study(
-            direction="maximize", 
-            sampler=optuna.samplers.TPESampler(seed=data['random_state']),
-            pruner=optuna.pruners.MedianPruner())
-    else:
-        study = optuna.create_study(
-            direction="maximize", 
-            sampler=optuna.samplers.TPESampler(seed=data['random_state']))
-    '''
-    
     if data['pruning']:
         study = optuna.create_study(
             direction="maximize", 
@@ -8028,12 +8001,11 @@ def knn_auto(X, y, **kwargs):
         study = optuna.create_study(
             direction="maximize", 
             sampler=optuna.samplers.TPESampler(seed=data['random_state'], multivariate=True))
-
-
-
     
     X_opt = X.copy()
-    study.optimize(lambda trial: knn_objective(trial, X_opt, y, **data), n_trials=data['n_trials'])
+    study.optimize(
+        lambda trial: knn_objective(trial, X_opt, y, **data), 
+        n_trials=data['n_trials'])
     best_params = study.best_params
     model_outputs['best_params'] = study.best_params
     model_outputs['optuna_study'] = study
@@ -8064,7 +8036,6 @@ def knn_auto(X, y, **kwargs):
         del best_params['n_components']
 
     # prepare X for use in the final fitted model
-    # X = X[selected_features]
     if pca_transform:
         X = pd.DataFrame(pca.transform(X), columns= [f"PC_{i+1}" for i in range(n_components)])
         X.index = y.index    
@@ -8163,6 +8134,7 @@ def knn_auto(X, y, **kwargs):
     warnings.filterwarnings("default")
 
     return fitted_model, model_outputs
+
 
 
 
