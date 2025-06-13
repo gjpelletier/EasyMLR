@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.65"
+__version__ = "1.1.66"
 
 def show_optuna(study):
 
@@ -8009,11 +8009,11 @@ def knn_auto(X, y, **kwargs):
         lambda trial: knn_objective(trial, X_opt, y, **data), 
         n_trials=data['n_trials'])
 
-    best_params = study.best_params
-    if 'n_components' in best_params:
-        best_params['pca_transform'] = True
+    # best_params = study.best_params
+    # if 'n_components' in best_params:
+    #     best_params['pca_transform'] = True
     # model_outputs['best_params'] = study.best_params
-    model_outputs['best_params'] = best_params.copy()
+    # model_outputs['best_params'] = best_params.copy()
 
     model_outputs['optuna_study'] = study
     model_outputs['best_trial'] = study.best_trial
@@ -8031,6 +8031,9 @@ def knn_auto(X, y, **kwargs):
     model_outputs['n_components'] = n_components
 
     print('Fitting KNeighborsRegressor model with best parameters, please wait ...')
+
+    # extract best_params from study and remove non-model params
+    best_params = study.best_params
     if 'feature_selection' in best_params:
         del best_params['feature_selection']
     if 'num_features' in best_params:
@@ -8039,6 +8042,7 @@ def knn_auto(X, y, **kwargs):
         del best_params['pca_transform']
     if 'n_components' in best_params:
         del best_params['n_components']
+    model_outputs['best_params'] = best_params
 
     # prepare X for use in the final fitted model
     if pca_transform:
