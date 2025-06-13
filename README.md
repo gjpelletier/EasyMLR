@@ -16,7 +16,7 @@ The EasyMLR module includes the following main Python functions to facilitate th
  - **svr_auto** - SVR with automatic cross-validated optimization of the hyperparameters
  - **svr** - SVR with user-specified hyperparameters
  - **knn_auto** - KNeighborsRegressor with automatic cross-validated optimization of the hyperparameters and optional PCA transformation
- - **knn** - KNeighborsRegressor with user-specified hyperparameters
+ - **knn** - KNeighborsRegressor with user-specified hyperparameters and optional PCA transformation
  - **lgbm** - LGBMRegressor with user-specified hyperparameters
  - **stacking** - StackingRegressor
  - **stepwise** - Stepwise multiple linear regression to minimize MSE, AIC, or BIC
