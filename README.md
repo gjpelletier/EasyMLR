@@ -15,6 +15,8 @@ The EasyMLR module includes the following main Python functions to facilitate th
  - **forest** - RandomForestRegressor with user-specified hyperparameters
  - **svr_auto** - SVR with automatic cross-validated optimization of the hyperparameters
  - **svr** - SVR with user-specified hyperparameters
+ - **knn_auto** - KNeighborsRegressor with automatic cross-validated optimization of the hyperparameters
+ - **knn** - KNeighborsRegressor with user-specified hyperparameters
  - **lgbm** - LGBMRegressor with user-specified hyperparameters
  - **stacking** - StackingRegressor
  - **stepwise** - Stepwise multiple linear regression to minimize MSE, AIC, or BIC
@@ -30,6 +32,7 @@ The functions in EasyMLR allow the user to write one line of python code to prov
 - automatic cross-validated Bayesian optimization of hyperparameters (XGBoost, CatBoost, GradientBoostingRegressor, RandomForestRegressor, and SVR)
 - show plots of optuna optimization history, hyperparameter importance, and contour plots of relationships between hyperparameters and MSE 
 - automatic standardization of X and output of the scaler (optional)
+- automatic PCA transform of X with KNN regression and output of the fitted PCA transformer (optional, knn_auto)
 - automatic detection and use of GPU for computations (XGBoost and CatBoost)
 
 ### Lasso
