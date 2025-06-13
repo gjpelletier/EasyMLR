@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.59"
+__version__ = "1.1.60"
 
 def show_optuna(study):
 
@@ -408,7 +408,7 @@ def stepwise(X, y, **kwargs):
         sys.exit()
     ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
     if not ctrl:
-        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
         sys.exit()
     ctrl = X.shape[0] == y.shape[0]
     if not ctrl:
@@ -986,7 +986,7 @@ def stats_given_model(X,y,model):
         sys.exit()
     ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
     if not ctrl:
-        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
         sys.exit()
     ctrl = X.shape[0] == y.shape[0]
     if not ctrl:
@@ -1121,7 +1121,7 @@ def stats_given_y_pred(X,y,y_pred):
         sys.exit()
     ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
     if not ctrl:
-        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
         sys.exit()
     ctrl = X.shape[0] == y.shape[0]
     if not ctrl:
@@ -1327,7 +1327,7 @@ def lasso(X, y, **kwargs):
         sys.exit()
     ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
     if not ctrl:
-        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
         sys.exit()
     ctrl = X.shape[0] == y.shape[0]
     if not ctrl:
@@ -2078,7 +2078,7 @@ def ridge(X, y, **kwargs):
         sys.exit()
     ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
     if not ctrl:
-        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
         sys.exit()
     ctrl = X.shape[0] == y.shape[0]
     if not ctrl:
@@ -2622,7 +2622,7 @@ def elastic(X, y, **kwargs):
         sys.exit()
     ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
     if not ctrl:
-        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
         sys.exit()
     ctrl = X.shape[0] == y.shape[0]
     if not ctrl:
@@ -3050,7 +3050,7 @@ def stacking(X, y, **kwargs):
         sys.exit()
     ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
     if not ctrl:
-        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
         sys.exit()
     ctrl = X.shape[0] == y.shape[0]
     if not ctrl:
@@ -3420,7 +3420,7 @@ def svr(X, y, **kwargs):
         sys.exit()
     ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
     if not ctrl:
-        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
         sys.exit()
     ctrl = X.shape[0] == y.shape[0]
     if not ctrl:
@@ -3804,7 +3804,7 @@ def svr_auto(X, y, **kwargs):
         sys.exit()
     ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
     if not ctrl:
-        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
         sys.exit()
     ctrl = X.shape[0] == y.shape[0]
     if not ctrl:
@@ -4063,7 +4063,7 @@ def sgd(X, y, **kwargs):
         sys.exit()
     ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
     if not ctrl:
-        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
         sys.exit()
     ctrl = X.shape[0] == y.shape[0]
     if not ctrl:
@@ -4375,7 +4375,7 @@ def gbr(X, y, **kwargs):
         sys.exit()
     ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
     if not ctrl:
-        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
         sys.exit()
     ctrl = X.shape[0] == y.shape[0]
     if not ctrl:
@@ -4797,7 +4797,7 @@ def gbr_auto(X, y, **kwargs):
         sys.exit()
     ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
     if not ctrl:
-        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
         sys.exit()
     ctrl = X.shape[0] == y.shape[0]
     if not ctrl:
@@ -5117,7 +5117,7 @@ def xgb(X, y, **kwargs):
         sys.exit()
     ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
     if not ctrl:
-        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
         sys.exit()
     ctrl = X.shape[0] == y.shape[0]
     if not ctrl:
@@ -5507,7 +5507,7 @@ def xgb_auto(X, y, **kwargs):
         sys.exit()
     ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
     if not ctrl:
-        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
         sys.exit()
     ctrl = X.shape[0] == y.shape[0]
     if not ctrl:
@@ -5806,7 +5806,7 @@ def lgbm(X, y, **kwargs):
         sys.exit()
     ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
     if not ctrl:
-        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
         sys.exit()
     ctrl = X.shape[0] == y.shape[0]
     if not ctrl:
@@ -6109,7 +6109,7 @@ def catboost(X, y, **kwargs):
         sys.exit()
     ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
     if not ctrl:
-        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
         sys.exit()
     ctrl = X.shape[0] == y.shape[0]
     if not ctrl:
@@ -6489,7 +6489,7 @@ def catboost_auto(X, y, **kwargs):
         sys.exit()
     ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
     if not ctrl:
-        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
         sys.exit()
     ctrl = X.shape[0] == y.shape[0]
     if not ctrl:
@@ -6817,7 +6817,7 @@ def forest(X, y, **kwargs):
         sys.exit()
     ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
     if not ctrl:
-        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
         sys.exit()
     ctrl = X.shape[0] == y.shape[0]
     if not ctrl:
@@ -7204,7 +7204,7 @@ def forest_auto(X, y, **kwargs):
         sys.exit()
     ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
     if not ctrl:
-        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
         sys.exit()
     ctrl = X.shape[0] == y.shape[0]
     if not ctrl:
@@ -7392,8 +7392,6 @@ def knn(X, y, **kwargs):
         standardize= True,                # standardize X
         verbose= 'on',
         gpu= True,                        # Autodetect to use gpu if present
-        n_splits= 5,                      # number of splits for KFold CV
-        pruning= False,                   # prune poor optuna trials
 
         # user params 
         pca_transform= False,             # PCA transform X
@@ -7463,8 +7461,8 @@ def knn(X, y, **kwargs):
         'standardize': True,                # standardize X
         'verbose': 'on',
         'gpu': True,                        # Autodetect to use gpu if present
-        'n_splits': 5,                      # number of splits for KFold CV
-        'pruning': False,                   # prune poor optuna trials
+        # 'n_splits': 5,                      # number of splits for KFold CV
+        # 'pruning': False,                   # prune poor optuna trials
 
         # user params 
         # 'pca_transform': True,            # force PCA transform
@@ -7515,7 +7513,7 @@ def knn(X, y, **kwargs):
         sys.exit()
     ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
     if not ctrl:
-        print('Check X: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
+        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
         sys.exit()
     ctrl = X.shape[0] == y.shape[0]
     if not ctrl:
@@ -7561,7 +7559,10 @@ def knn(X, y, **kwargs):
 
     if data['pca_transform'] and data['pca'] == None:
         # fit new PCA transformer
-        n_components = min(X.shape[0],X.shape[1])   # lesser of n_samples and n_features
+        if n_components == None:
+            n_components = min(X.shape[0],X.shape[1])   # lesser of n_samples and n_features
+        else:
+            n_components = data['n_components']
         pca = PCA(n_components=n_components).fit(X)
         X = pca.transform(X)        
         n_components = pca.n_components_
@@ -7767,7 +7768,7 @@ def knn_objective(trial, X, y, **kwargs):
         model.fit(X, y)
         train_pred = model.predict(X)
         train_mse = mean_squared_error(y, train_pred)    
-        if train_mse == 0 or train_mse < kwargs['tol']:
+        if train_mse <= kwargs['tol']:
             raise optuna.exceptions.TrialPruned(
                 "Training MSE is zero — likely overfitting")
 
@@ -7788,7 +7789,7 @@ def knn_auto(X, y, **kwargs):
     by
     Greg Pelletier
     gjpelletier@gmail.com
-    10-June-2025
+    13-June-2025
 
     REQUIRED INPUTS (X and y should have same number of rows and 
     only contain real numbers)
@@ -8019,8 +8020,6 @@ def knn_auto(X, y, **kwargs):
     pca = study.best_trial.user_attrs.get('pca')
     n_components = study.best_trial.user_attrs.get('n_components')
     model_outputs['pruning'] = data['pruning']
-    # model_outputs['feature_selection'] = study.best_trial.user_attrs.get('feature_selection')
-    # model_outputs['selected_features'] = selected_features
     model_outputs['X_opt'] = X_opt
     model_outputs['pca_transform'] = pca_transform
     model_outputs['pca'] = pca
