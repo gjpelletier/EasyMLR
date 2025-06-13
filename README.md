@@ -32,7 +32,7 @@ The functions in EasyMLR allow the user to write one line of python code to prov
 - automatic cross-validated Bayesian optimization of hyperparameters (XGBoost, CatBoost, GradientBoostingRegressor, RandomForestRegressor, and SVR)
 - show plots of optuna optimization history, hyperparameter importance, and contour plots of relationships between hyperparameters and MSE 
 - automatic standardization of X and output of the scaler (optional)
-- automatic PCA transform of X with KNN regression and output of the fitted PCA transformer (optional, knn_auto)
+- automatic PCA transform of X with KNN regression and output of the optimal fitted PCA transformer (optional, knn_auto)
 - automatic detection and use of GPU for computations (XGBoost and CatBoost)
 
 ### Lasso
