@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.62"
+__version__ = "1.1.63"
 
 def show_optuna(study):
 
@@ -8009,6 +8009,9 @@ def knn_auto(X, y, **kwargs):
         lambda trial: knn_objective(trial, X_opt, y, **data), 
         n_trials=data['n_trials'])
     best_params = study.best_params
+    if 'n_components' in best_params:
+        best_params['pca_transform'] = True
+
     model_outputs['best_params'] = study.best_params
     model_outputs['optuna_study'] = study
     model_outputs['best_trial'] = study.best_trial
