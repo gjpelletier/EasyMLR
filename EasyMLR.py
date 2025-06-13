@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.58"
+__version__ = "1.1.59"
 
 def show_optuna(study):
 
@@ -7705,6 +7705,7 @@ def knn_objective(trial, X, y, **kwargs):
     from sklearn.feature_selection import SelectKBest, mutual_info_regression
     from sklearn.decomposition import PCA
     from sklearn.metrics import mean_squared_error
+    import optuna
     
     # Set global random seed
     np.random.seed(kwargs['random_state'])
