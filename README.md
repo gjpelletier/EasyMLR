@@ -34,6 +34,7 @@ The functions in EasyMLR allow the user to write one line of high-level python c
 - automatic standardization of X and output of the scaler (optional)
 - automatic PCA transform of X with KNN regression and output of the optimized fitted PCA transformer (optional, knn_auto and knn)
 - automatic detection and use of GPU for computations (XGBoost and CatBoost)
+- automatic prevention of overfitting the training data with KNN regression (knn_auto)
 
 ### Lasso
 
