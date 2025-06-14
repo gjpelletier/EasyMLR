@@ -1,6 +1,87 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.68"
+__version__ = "1.1.69"
+
+def check_X_y(X,y):
+
+    '''
+    Check the X and y inputs used in regression 
+    '''
+    
+    import pandas as pd
+    import numpy as np
+    import sys
+
+    if isinstance(X, pd.DataFrame) and isinstance(y, pd.Series):
+        ctrl = (X.index == y.index).all()
+        if not ctrl:
+            print('Check X and y: they need to have the same index values!','\n')
+            sys.exit()
+
+    if isinstance(X, pd.DataFrame):
+        ctrl = X.isna().sum().sum()==0
+        if not ctrl:
+            print('Check X: it needs to have no nan values!','\n')
+            sys.exit()
+        ctrl = not np.isinf(X.select_dtypes(include=[float])).any().any()
+        if not ctrl:
+            print('Check X: it needs to have no inf values!','\n')
+            sys.exit()
+        ctrl = X.columns.is_unique
+        if not ctrl:
+            print('Check X: X needs to have unique column names for every column!','\n')
+            sys.exit()
+    
+    if isinstance(y, pd.Series):
+        ctrl = y.isna().sum().sum()==0
+        if not ctrl:
+            print('Check y: it needs to have no nan values!','\n')
+            sys.exit()
+        ctrl = not np.isinf(y.values).any()
+        if not ctrl:
+            print('Check y: it needs to have no inf values!','\n')
+            sys.exit()
+
+    if isinstance(X, np.ndarray):
+        ctrl = np.isnan(X).sum().sum()==0
+        if not ctrl:
+            print('Check X: it needs to have no nan values!','\n')
+            sys.exit()
+        ctrl = not np.any([np.isinf(val) if isinstance(val, (int, float)) else False for val in X])
+        if not ctrl:
+            print('Check X: it needs to have no inf values!','\n')
+            sys.exit()
+    
+    if isinstance(y, np.ndarray):
+        ctrl = np.isnan(y).sum().sum()==0
+        if not ctrl:
+            print('Check y: it needs to have no nan values!','\n')
+            sys.exit()
+        ctrl = not np.any([np.isinf(val) if isinstance(val, (int, float)) else False for val in y])
+        if not ctrl:
+            print('Check y: it needs to have no inf values!','\n')
+            sys.exit()
+    
+    ctrl = np.isreal(X).all()
+    if not ctrl:
+        print('Check X: it needs be all real numbers!','\n')
+        sys.exit()
+    ctrl = X.ndim==2
+    if not ctrl:
+        print('Check X: it needs be 2-D!','\n')
+        sys.exit()
+    ctrl = np.isreal(y).all()
+    if not ctrl:
+        print('Check y: it needs be all real numbers!','\n')
+        sys.exit()
+    ctrl = y.ndim==1
+    if not ctrl:
+        print('Check y: it needs be 1-D!','\n')
+        sys.exit()
+    ctrl = X.shape[0] == y.shape[0]
+    if not ctrl:
+        print('Check X and y: X and y need to have the same number of rows!','\n')
+        sys.exit()
 
 def show_optuna(study):
 
@@ -393,30 +474,10 @@ def stepwise(X, y, **kwargs):
     if ctrl:
         print('Check X: Stewpise can not handle dummies. Try using lasso if X has dummies.','\n')
         sys.exit()
-    ctrl = isinstance(X, pd.DataFrame)
-    if not ctrl:
-        print('Check X: it needs to be pandas dataframe!','\n')
-        sys.exit()
-    ctrl = (X.index == y.index).all()
-    if not ctrl:
-        print('Check X and y: they need to have the same index values!','\n')
-        sys.exit()
-    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
-    if not ctrl:
-        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
-    if not ctrl:
-        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = X.shape[0] == y.shape[0]
-    if not ctrl:
-        print('Check X and y: X and y need to have the same number of rows!','\n')
-        sys.exit()
-    ctrl = X.columns.is_unique
-    if not ctrl:
-        print('Check X: X needs to have unique column names for every column!','\n')
-        sys.exit()
+
+    from EasyMLR import check_X_y
+    check_X_y(X,y)
+
     if data['direction'] == 'all':
         ctrl = X.shape[1]<=20
         if not ctrl:
@@ -970,31 +1031,8 @@ def stats_given_model(X,y,model):
     from sklearn.linear_model import LassoCV
     import sys
 
-    # check for input errors
-    ctrl = isinstance(X, pd.DataFrame)
-    if not ctrl:
-        print('Check X: it needs to be pandas dataframes!','\n')
-        sys.exit()
-    ctrl = (X.index == y.index).all()
-    if not ctrl:
-        print('Check X and y: they need to have the same index values!','\n')
-        sys.exit()
-    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
-    if not ctrl:
-        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
-    if not ctrl:
-        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = X.shape[0] == y.shape[0]
-    if not ctrl:
-        print('Check X and y: X and y need to have the same number of rows!','\n')
-        sys.exit()
-    ctrl = X.columns.is_unique
-    if not ctrl:
-        print('Check X: X needs to have unique column names for every column!','\n')
-        sys.exit()
+    from EasyMLR import check_X_y
+    check_X_y(X,y)
         
     # Calculate regression summary stats
     y_pred = model.predict(X)                   # best fit of the predicted y values
@@ -1105,31 +1143,9 @@ def stats_given_y_pred(X,y,y_pred):
     from scipy import stats
     import sys
     
-    # check for input errors
-    ctrl = isinstance(X, pd.DataFrame)
-    if not ctrl:
-        print('Check X: it needs to be pandas dataframes!','\n')
-        sys.exit()
-    ctrl = (X.index == y.index).all()
-    if not ctrl:
-        print('Check X and y: they need to have the same index values!','\n')
-        sys.exit()
-    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
-    if not ctrl:
-        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
-    if not ctrl:
-        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = X.shape[0] == y.shape[0]
-    if not ctrl:
-        print('Check X and y: X and y need to have the same number of rows!','\n')
-        sys.exit()
-    ctrl = X.columns.is_unique
-    if not ctrl:
-        print('Check X: X needs to have unique column names for every column!','\n')
-        sys.exit()
+    from EasyMLR import check_X_y
+    check_X_y(X,y)
+
     ctrl = len(y) == len(y_pred)
     if not ctrl:
         print('Check y_pred: it needs to be the same length as y!','\n')
@@ -1311,31 +1327,9 @@ def lasso(X, y, **kwargs):
     # Update input data argumements with any provided keyword arguments in kwargs
     data = {**defaults, **kwargs}
 
-    # check for input errors
-    ctrl = isinstance(X, pd.DataFrame)
-    if not ctrl:
-        print('Check X: it needs to be pandas dataframes!','\n')
-        sys.exit()
-    ctrl = (X.index == y.index).all()
-    if not ctrl:
-        print('Check X and y: they need to have the same index values!','\n')
-        sys.exit()
-    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
-    if not ctrl:
-        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
-    if not ctrl:
-        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = X.shape[0] == y.shape[0]
-    if not ctrl:
-        print('Check X and y: X and y need to have the same number of rows!','\n')
-        sys.exit()
-    ctrl = X.columns.is_unique
-    if not ctrl:
-        print('Check X: X needs to have unique column names for every column!','\n')
-        sys.exit()
+    from EasyMLR import check_X_y
+    check_X_y(X,y)
+
     ctrl = data['alpha_min'] > 0 
     if not ctrl:
         print('Check input of alpha_min, it must be greater than zero!','\n')
@@ -2063,30 +2057,10 @@ def ridge(X, y, **kwargs):
     # if ctrl:
     #     print('Check X: Ridge can not handle dummies. Try using lasso if X has dummies.','\n')
     #     sys.exit()
-    ctrl = isinstance(X, pd.DataFrame)
-    if not ctrl:
-        print('Check X: it needs to be pandas dataframes!','\n')
-        sys.exit()
-    ctrl = (X.index == y.index).all()
-    if not ctrl:
-        print('Check X and y: they need to have the same index values!','\n')
-        sys.exit()
-    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
-    if not ctrl:
-        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
-    if not ctrl:
-        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = X.shape[0] == y.shape[0]
-    if not ctrl:
-        print('Check X and y: X and y need to have the same number of rows!','\n')
-        sys.exit()
-    ctrl = X.columns.is_unique
-    if not ctrl:
-        print('Check X: X needs to have unique column names for every column!','\n')
-        sys.exit()
+
+    from EasyMLR import check_X_y
+    check_X_y(X,y)
+
     ctrl = data['alpha_min'] > 0 
     if not ctrl:
         print('Check inputs of alpha_min, it must be greater than zero!','\n')
@@ -2606,31 +2580,9 @@ def elastic(X, y, **kwargs):
     # Update input data argumements with any provided keyword arguments in kwargs
     data = {**defaults, **kwargs}
 
-    # check for input errors
-    ctrl = isinstance(X, pd.DataFrame)
-    if not ctrl:
-        print('Check X: it needs to be pandas dataframes!','\n')
-        sys.exit()
-    ctrl = (X.index == y.index).all()
-    if not ctrl:
-        print('Check X and y: they need to have the same index values!','\n')
-        sys.exit()
-    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
-    if not ctrl:
-        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
-    if not ctrl:
-        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = X.shape[0] == y.shape[0]
-    if not ctrl:
-        print('Check X and y: X and y need to have the same number of rows!','\n')
-        sys.exit()
-    ctrl = X.columns.is_unique
-    if not ctrl:
-        print('Check X: X needs to have unique column names for every column!','\n')
-        sys.exit()
+    from EasyMLR import check_X_y
+    check_X_y(X,y)
+
     ctrl = data['alpha_min'] > 0 
     if not ctrl:
         print('Check input of alpha_min, it must be greater than zero!','\n')
@@ -3034,31 +2986,9 @@ def stacking(X, y, **kwargs):
     # Update input data argumements with any provided keyword arguments in kwargs
     data = {**defaults, **kwargs}
 
-    # check for input errors
-    ctrl = isinstance(X, pd.DataFrame)
-    if not ctrl:
-        print('Check X: it needs to be pandas dataframes!','\n')
-        sys.exit()
-    ctrl = (X.index == y.index).all()
-    if not ctrl:
-        print('Check X and y: they need to have the same index values!','\n')
-        sys.exit()
-    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
-    if not ctrl:
-        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
-    if not ctrl:
-        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = X.shape[0] == y.shape[0]
-    if not ctrl:
-        print('Check X and y: X and y need to have the same number of rows!','\n')
-        sys.exit()
-    ctrl = X.columns.is_unique
-    if not ctrl:
-        print('Check X: X needs to have unique column names for every column!','\n')
-        sys.exit()
+    from EasyMLR import check_X_y
+    check_X_y(X,y)
+
     ctrl = data['alpha_min'] > 0 
     if not ctrl:
         print('Check input of alpha_min, it must be greater than zero!','\n')
@@ -3404,31 +3334,9 @@ def svr(X, y, **kwargs):
     # Update input data argumements with any provided keyword arguments in kwargs
     data = {**defaults, **kwargs}
 
-    # check for input errors
-    ctrl = isinstance(X, pd.DataFrame)
-    if not ctrl:
-        print('Check X: it needs to be pandas dataframes!','\n')
-        sys.exit()
-    ctrl = (X.index == y.index).all()
-    if not ctrl:
-        print('Check X and y: they need to have the same index values!','\n')
-        sys.exit()
-    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
-    if not ctrl:
-        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
-    if not ctrl:
-        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = X.shape[0] == y.shape[0]
-    if not ctrl:
-        print('Check X and y: X and y need to have the same number of rows!','\n')
-        sys.exit()
-    ctrl = X.columns.is_unique
-    if not ctrl:
-        print('Check X: X needs to have unique column names for every column!','\n')
-        sys.exit()
+    from EasyMLR import check_X_y
+    check_X_y(X,y)
+
     ctrl = data['gamma']=='scale' or data['gamma']=='auto' or data['gamma']>0   
     if not ctrl:
         print('Check inputs of gamma, it must be scale, auto, or float>0!','\n')
@@ -3788,31 +3696,8 @@ def svr_auto(X, y, **kwargs):
     else:
         data['device'] = 'cpu'
 
-    # check for input errors
-    ctrl = isinstance(X, pd.DataFrame)
-    if not ctrl:
-        print('Check X: it needs to be pandas dataframes!','\n')
-        sys.exit()
-    ctrl = (X.index == y.index).all()
-    if not ctrl:
-        print('Check X and y: they need to have the same index values!','\n')
-        sys.exit()
-    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
-    if not ctrl:
-        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
-    if not ctrl:
-        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = X.shape[0] == y.shape[0]
-    if not ctrl:
-        print('Check X and y: X and y need to have the same number of rows!','\n')
-        sys.exit()
-    ctrl = X.columns.is_unique
-    if not ctrl:
-        print('Check X: X needs to have unique column names for every column!','\n')
-        sys.exit()
+    from EasyMLR import check_X_y
+    check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
@@ -4047,31 +3932,8 @@ def sgd(X, y, **kwargs):
     # Update input data argumements with any provided keyword arguments in kwargs
     data = {**defaults, **kwargs}
 
-    # check for input errors
-    ctrl = isinstance(X, pd.DataFrame)
-    if not ctrl:
-        print('Check X: it needs to be pandas dataframes!','\n')
-        sys.exit()
-    ctrl = (X.index == y.index).all()
-    if not ctrl:
-        print('Check X and y: they need to have the same index values!','\n')
-        sys.exit()
-    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
-    if not ctrl:
-        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
-    if not ctrl:
-        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = X.shape[0] == y.shape[0]
-    if not ctrl:
-        print('Check X and y: X and y need to have the same number of rows!','\n')
-        sys.exit()
-    ctrl = X.columns.is_unique
-    if not ctrl:
-        print('Check X: X needs to have unique column names for every column!','\n')
-        sys.exit()
+    from EasyMLR import check_X_y
+    check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
@@ -4359,31 +4221,8 @@ def gbr(X, y, **kwargs):
     # Update input data argumements with any provided keyword arguments in kwargs
     data = {**defaults, **kwargs}
 
-    # check for input errors
-    ctrl = isinstance(X, pd.DataFrame)
-    if not ctrl:
-        print('Check X: it needs to be pandas dataframes!','\n')
-        sys.exit()
-    ctrl = (X.index == y.index).all()
-    if not ctrl:
-        print('Check X and y: they need to have the same index values!','\n')
-        sys.exit()
-    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
-    if not ctrl:
-        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
-    if not ctrl:
-        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = X.shape[0] == y.shape[0]
-    if not ctrl:
-        print('Check X and y: X and y need to have the same number of rows!','\n')
-        sys.exit()
-    ctrl = X.columns.is_unique
-    if not ctrl:
-        print('Check X: X needs to have unique column names for every column!','\n')
-        sys.exit()
+    from EasyMLR import check_X_y
+    check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
@@ -4781,31 +4620,9 @@ def gbr_auto(X, y, **kwargs):
     else:
         data['device'] = 'cpu'
 
-    # check for input errors
-    ctrl = isinstance(X, pd.DataFrame)
-    if not ctrl:
-        print('Check X: it needs to be pandas dataframes!','\n')
-        sys.exit()
-    ctrl = (X.index == y.index).all()
-    if not ctrl:
-        print('Check X and y: they need to have the same index values!','\n')
-        sys.exit()
-    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
-    if not ctrl:
-        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
-    if not ctrl:
-        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = X.shape[0] == y.shape[0]
-    if not ctrl:
-        print('Check X and y: X and y need to have the same number of rows!','\n')
-        sys.exit()
-    ctrl = X.columns.is_unique
-    if not ctrl:
-        print('Check X: X needs to have unique column names for every column!','\n')
-        sys.exit()
+    from EasyMLR import check_X_y
+    check_X_y(X,y)
+
     ctrl = data['n_jobs']==1
     if not ctrl:
         print('Warning: for reproducible results use n_jobs=1')
@@ -5101,31 +4918,8 @@ def xgb(X, y, **kwargs):
     else:
         data['device'] = 'cpu'
 
-    # check for input errors
-    ctrl = isinstance(X, pd.DataFrame)
-    if not ctrl:
-        print('Check X: it needs to be pandas dataframes!','\n')
-        sys.exit()
-    ctrl = (X.index == y.index).all()
-    if not ctrl:
-        print('Check X and y: they need to have the same index values!','\n')
-        sys.exit()
-    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
-    if not ctrl:
-        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
-    if not ctrl:
-        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = X.shape[0] == y.shape[0]
-    if not ctrl:
-        print('Check X and y: X and y need to have the same number of rows!','\n')
-        sys.exit()
-    ctrl = X.columns.is_unique
-    if not ctrl:
-        print('Check X: X needs to have unique column names for every column!','\n')
-        sys.exit()
+    from EasyMLR import check_X_y
+    check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
@@ -5491,31 +5285,8 @@ def xgb_auto(X, y, **kwargs):
     else:
         data['device'] = 'cpu'
 
-    # check for input errors
-    ctrl = isinstance(X, pd.DataFrame)
-    if not ctrl:
-        print('Check X: it needs to be pandas dataframes!','\n')
-        sys.exit()
-    ctrl = (X.index == y.index).all()
-    if not ctrl:
-        print('Check X and y: they need to have the same index values!','\n')
-        sys.exit()
-    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
-    if not ctrl:
-        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
-    if not ctrl:
-        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = X.shape[0] == y.shape[0]
-    if not ctrl:
-        print('Check X and y: X and y need to have the same number of rows!','\n')
-        sys.exit()
-    ctrl = X.columns.is_unique
-    if not ctrl:
-        print('Check X: X needs to have unique column names for every column!','\n')
-        sys.exit()
+    from EasyMLR import check_X_y
+    check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
@@ -5790,31 +5561,8 @@ def lgbm(X, y, **kwargs):
     # Update input data argumements with any provided keyword arguments in kwargs
     data = {**defaults, **kwargs}
 
-    # check for input errors
-    ctrl = isinstance(X, pd.DataFrame)
-    if not ctrl:
-        print('Check X: it needs to be pandas dataframes!','\n')
-        sys.exit()
-    ctrl = (X.index == y.index).all()
-    if not ctrl:
-        print('Check X and y: they need to have the same index values!','\n')
-        sys.exit()
-    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
-    if not ctrl:
-        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
-    if not ctrl:
-        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = X.shape[0] == y.shape[0]
-    if not ctrl:
-        print('Check X and y: X and y need to have the same number of rows!','\n')
-        sys.exit()
-    ctrl = X.columns.is_unique
-    if not ctrl:
-        print('Check X: X needs to have unique column names for every column!','\n')
-        sys.exit()
+    from EasyMLR import check_X_y
+    check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
@@ -6093,31 +5841,8 @@ def catboost(X, y, **kwargs):
     else:
         data['device'] = 'CPU'
     
-    # check for input errors
-    ctrl = isinstance(X, pd.DataFrame)
-    if not ctrl:
-        print('Check X: it needs to be pandas dataframes!','\n')
-        sys.exit()
-    ctrl = (X.index == y.index).all()
-    if not ctrl:
-        print('Check X and y: they need to have the same index values!','\n')
-        sys.exit()
-    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
-    if not ctrl:
-        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
-    if not ctrl:
-        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = X.shape[0] == y.shape[0]
-    if not ctrl:
-        print('Check X and y: X and y need to have the same number of rows!','\n')
-        sys.exit()
-    ctrl = X.columns.is_unique
-    if not ctrl:
-        print('Check X: X needs to have unique column names for every column!','\n')
-        sys.exit()
+    from EasyMLR import check_X_y
+    check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
@@ -6473,31 +6198,8 @@ def catboost_auto(X, y, **kwargs):
     else:
         data['device'] = 'CPU'
 
-    # check for input errors
-    ctrl = isinstance(X, pd.DataFrame)
-    if not ctrl:
-        print('Check X: it needs to be pandas dataframes!','\n')
-        sys.exit()
-    ctrl = (X.index == y.index).all()
-    if not ctrl:
-        print('Check X and y: they need to have the same index values!','\n')
-        sys.exit()
-    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
-    if not ctrl:
-        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
-    if not ctrl:
-        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = X.shape[0] == y.shape[0]
-    if not ctrl:
-        print('Check X and y: X and y need to have the same number of rows!','\n')
-        sys.exit()
-    ctrl = X.columns.is_unique
-    if not ctrl:
-        print('Check X: X needs to have unique column names for every column!','\n')
-        sys.exit()
+    from EasyMLR import check_X_y
+    check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
@@ -6801,31 +6503,8 @@ def forest(X, y, **kwargs):
     else:
         data['device'] = 'cpu'
 
-    # check for input errors
-    ctrl = isinstance(X, pd.DataFrame)
-    if not ctrl:
-        print('Check X: it needs to be pandas dataframes!','\n')
-        sys.exit()
-    ctrl = (X.index == y.index).all()
-    if not ctrl:
-        print('Check X and y: they need to have the same index values!','\n')
-        sys.exit()
-    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
-    if not ctrl:
-        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
-    if not ctrl:
-        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = X.shape[0] == y.shape[0]
-    if not ctrl:
-        print('Check X and y: X and y need to have the same number of rows!','\n')
-        sys.exit()
-    ctrl = X.columns.is_unique
-    if not ctrl:
-        print('Check X: X needs to have unique column names for every column!','\n')
-        sys.exit()
+    from EasyMLR import check_X_y
+    check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
@@ -7188,31 +6867,8 @@ def forest_auto(X, y, **kwargs):
     else:
         data['device'] = 'cpu'
 
-    # check for input errors
-    ctrl = isinstance(X, pd.DataFrame)
-    if not ctrl:
-        print('Check X: it needs to be pandas dataframes!','\n')
-        sys.exit()
-    ctrl = (X.index == y.index).all()
-    if not ctrl:
-        print('Check X and y: they need to have the same index values!','\n')
-        sys.exit()
-    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
-    if not ctrl:
-        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
-    if not ctrl:
-        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = X.shape[0] == y.shape[0]
-    if not ctrl:
-        print('Check X and y: X and y need to have the same number of rows!','\n')
-        sys.exit()
-    ctrl = X.columns.is_unique
-    if not ctrl:
-        print('Check X: X needs to have unique column names for every column!','\n')
-        sys.exit()
+    from EasyMLR import check_X_y
+    check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
@@ -7497,31 +7153,8 @@ def knn(X, y, **kwargs):
     else:
         data['device'] = 'cpu'
 
-    # check for input errors
-    ctrl = isinstance(X, pd.DataFrame)
-    if not ctrl:
-        print('Check X: it needs to be pandas dataframes!','\n')
-        sys.exit()
-    ctrl = (X.index == y.index).all()
-    if not ctrl:
-        print('Check X and y: they need to have the same index values!','\n')
-        sys.exit()
-    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
-    if not ctrl:
-        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
-    if not ctrl:
-        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = X.shape[0] == y.shape[0]
-    if not ctrl:
-        print('Check X and y: X and y need to have the same number of rows!','\n')
-        sys.exit()
-    ctrl = X.columns.is_unique
-    if not ctrl:
-        print('Check X: X needs to have unique column names for every column!','\n')
-        sys.exit()
+    from EasyMLR import check_X_y
+    check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
@@ -7926,31 +7559,8 @@ def knn_auto(X, y, **kwargs):
     else:
         data['device'] = 'cpu'
 
-    # check for input errors
-    ctrl = isinstance(X, pd.DataFrame)
-    if not ctrl:
-        print('Check X: it needs to be pandas dataframes!','\n')
-        sys.exit()
-    ctrl = (X.index == y.index).all()
-    if not ctrl:
-        print('Check X and y: they need to have the same index values!','\n')
-        sys.exit()
-    ctrl = np.isreal(X).all() and X.isna().sum().sum()==0 and X.ndim==2
-    if not ctrl:
-        print('Check X: it needs be a 2-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = np.isreal(y).all() and y.isna().sum().sum()==0 and y.ndim==1
-    if not ctrl:
-        print('Check y: it needs be a 1-D dataframe of real numbers with no nan values!','\n')
-        sys.exit()
-    ctrl = X.shape[0] == y.shape[0]
-    if not ctrl:
-        print('Check X and y: X and y need to have the same number of rows!','\n')
-        sys.exit()
-    ctrl = X.columns.is_unique
-    if not ctrl:
-        print('Check X: X needs to have unique column names for every column!','\n')
-        sys.exit()
+    from EasyMLR import check_X_y
+    check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
