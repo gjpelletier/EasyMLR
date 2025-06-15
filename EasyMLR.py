@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.73"
+__version__ = "1.1.74"
 
 def check_X_y(X,y):
 
@@ -83,11 +83,13 @@ def check_X_y(X,y):
         print('Check X and y: X and y need to have the same number of rows!','\n')
         sys.exit()
 
-    # convert X and y to pandas dataframe and series if numpy arrays
-    if isinstance(X, np.ndarray):
+    # convert X and y to pandas dataframe and series if not already
+    # if isinstance(X, np.ndarray):
+    if not isinstance(X, pd.DataFrame):
         X = pd.DataFrame(X)
         X.columns = ['X' + str(i) for i in X.columns]       
-    if isinstance(y, np.ndarray):
+    # if isinstance(y, np.ndarray):
+    if not isinstance(y, pd.Series):
         y = pd.Series(y)
         y.name = 'y'
 
