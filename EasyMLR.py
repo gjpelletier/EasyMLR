@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.69"
+__version__ = "1.1.70"
 
 def check_X_y(X,y):
 
@@ -82,6 +82,16 @@ def check_X_y(X,y):
     if not ctrl:
         print('Check X and y: X and y need to have the same number of rows!','\n')
         sys.exit()
+
+    # convert X and y to pandas dataframe and series if numpy arrays
+    if isinstance(X, np.ndarray):
+        X = pd.DataFrame(X)
+        X.columns = ['X' + str(i) for i in X.columns]       
+    if isinstance(y, np.ndarray):
+        y = pd.Series(y)
+        y.name = 'y'
+
+return(X, y)
 
 def show_optuna(study):
 
@@ -476,7 +486,7 @@ def stepwise(X, y, **kwargs):
         sys.exit()
 
     from EasyMLR import check_X_y
-    check_X_y(X,y)
+    X, y = check_X_y(X,y)
 
     if data['direction'] == 'all':
         ctrl = X.shape[1]<=20
@@ -1032,7 +1042,7 @@ def stats_given_model(X,y,model):
     import sys
 
     from EasyMLR import check_X_y
-    check_X_y(X,y)
+    X, y = check_X_y(X,y)
         
     # Calculate regression summary stats
     y_pred = model.predict(X)                   # best fit of the predicted y values
@@ -1144,7 +1154,7 @@ def stats_given_y_pred(X,y,y_pred):
     import sys
     
     from EasyMLR import check_X_y
-    check_X_y(X,y)
+    X, y = check_X_y(X,y)
 
     ctrl = len(y) == len(y_pred)
     if not ctrl:
@@ -1328,7 +1338,7 @@ def lasso(X, y, **kwargs):
     data = {**defaults, **kwargs}
 
     from EasyMLR import check_X_y
-    check_X_y(X,y)
+    X, y = check_X_y(X,y)
 
     ctrl = data['alpha_min'] > 0 
     if not ctrl:
@@ -2059,7 +2069,7 @@ def ridge(X, y, **kwargs):
     #     sys.exit()
 
     from EasyMLR import check_X_y
-    check_X_y(X,y)
+    X, y = check_X_y(X,y)
 
     ctrl = data['alpha_min'] > 0 
     if not ctrl:
@@ -2581,7 +2591,7 @@ def elastic(X, y, **kwargs):
     data = {**defaults, **kwargs}
 
     from EasyMLR import check_X_y
-    check_X_y(X,y)
+    X, y = check_X_y(X,y)
 
     ctrl = data['alpha_min'] > 0 
     if not ctrl:
@@ -2987,7 +2997,7 @@ def stacking(X, y, **kwargs):
     data = {**defaults, **kwargs}
 
     from EasyMLR import check_X_y
-    check_X_y(X,y)
+    X, y = check_X_y(X,y)
 
     ctrl = data['alpha_min'] > 0 
     if not ctrl:
@@ -3335,7 +3345,7 @@ def svr(X, y, **kwargs):
     data = {**defaults, **kwargs}
 
     from EasyMLR import check_X_y
-    check_X_y(X,y)
+    X, y = check_X_y(X,y)
 
     ctrl = data['gamma']=='scale' or data['gamma']=='auto' or data['gamma']>0   
     if not ctrl:
@@ -3697,7 +3707,7 @@ def svr_auto(X, y, **kwargs):
         data['device'] = 'cpu'
 
     from EasyMLR import check_X_y
-    check_X_y(X,y)
+    X, y = check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
@@ -3933,7 +3943,7 @@ def sgd(X, y, **kwargs):
     data = {**defaults, **kwargs}
 
     from EasyMLR import check_X_y
-    check_X_y(X,y)
+    X, y = check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
@@ -4222,7 +4232,7 @@ def gbr(X, y, **kwargs):
     data = {**defaults, **kwargs}
 
     from EasyMLR import check_X_y
-    check_X_y(X,y)
+    X, y = check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
@@ -4621,7 +4631,7 @@ def gbr_auto(X, y, **kwargs):
         data['device'] = 'cpu'
 
     from EasyMLR import check_X_y
-    check_X_y(X,y)
+    X, y = check_X_y(X,y)
 
     ctrl = data['n_jobs']==1
     if not ctrl:
@@ -4919,7 +4929,7 @@ def xgb(X, y, **kwargs):
         data['device'] = 'cpu'
 
     from EasyMLR import check_X_y
-    check_X_y(X,y)
+    X, y = check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
@@ -5286,7 +5296,7 @@ def xgb_auto(X, y, **kwargs):
         data['device'] = 'cpu'
 
     from EasyMLR import check_X_y
-    check_X_y(X,y)
+    X, y = check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
@@ -5562,7 +5572,7 @@ def lgbm(X, y, **kwargs):
     data = {**defaults, **kwargs}
 
     from EasyMLR import check_X_y
-    check_X_y(X,y)
+    X, y = check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
@@ -5842,7 +5852,7 @@ def catboost(X, y, **kwargs):
         data['device'] = 'CPU'
     
     from EasyMLR import check_X_y
-    check_X_y(X,y)
+    X, y = check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
@@ -6199,7 +6209,7 @@ def catboost_auto(X, y, **kwargs):
         data['device'] = 'CPU'
 
     from EasyMLR import check_X_y
-    check_X_y(X,y)
+    X, y = check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
@@ -6504,7 +6514,7 @@ def forest(X, y, **kwargs):
         data['device'] = 'cpu'
 
     from EasyMLR import check_X_y
-    check_X_y(X,y)
+    X, y = check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
@@ -6868,7 +6878,7 @@ def forest_auto(X, y, **kwargs):
         data['device'] = 'cpu'
 
     from EasyMLR import check_X_y
-    check_X_y(X,y)
+    X, y = check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
@@ -7154,7 +7164,7 @@ def knn(X, y, **kwargs):
         data['device'] = 'cpu'
 
     from EasyMLR import check_X_y
-    check_X_y(X,y)
+    X, y = check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
@@ -7345,6 +7355,29 @@ def knn_objective(trial, X, y, **kwargs):
 
     # Make a copy of X to prevent changes in the calling function
     # X = X.copy()
+
+    '''
+    # Feature Selection: Optimize number of features before PCA
+    if isinstance(kwargs['feature_selection'], list):
+        feature_selection = trial.suggest_categorical('feature_selection', kwargs['feature_selection']) 
+    else:
+        feature_selection = kwargs['feature_selection']    
+    # if kwargs['feature_selection'] == 'on':
+    # if kwargs['feature_selection']:
+    if feature_selection:
+        num_features = trial.suggest_int("num_features", 5, X.shape[1])  # Select top features
+        selector = SelectKBest(mutual_info_regression, k=num_features)
+        # X_selected = selector.fit_transform(X, y)
+        X = selector.fit_transform(X, y)
+        # Get indices of selected features
+        selected_indices = selector.get_support(indices=True)
+        # Get names of selected features
+        # feature_names = [f"Feature_{i}" for i in range(X.shape[1])]  # Assign names to features
+        feature_names = kwargs['feature_names']
+        selected_features = np.array(feature_names)[selected_indices]
+    else:
+        selected_features = kwargs['feature_names']
+    '''
 
     # PCA Transformation: Optimize number of components
     if isinstance(kwargs['pca_transform'], list):
@@ -7547,7 +7580,10 @@ def knn_auto(X, y, **kwargs):
     data = {**defaults, **kwargs}
 
     # store the names of the features
-    data['feature_names'] = X.columns
+    if isinstance(X, pd.DataFrame):
+        data['feature_names'] = X.columns
+    else:
+        data['feature_names'] = [f"X_{i}" for i in range(X.shape[1])]
      
     # Auto-detect if GPU is present and use GPU if present
     if data['gpu']:
@@ -7560,7 +7596,7 @@ def knn_auto(X, y, **kwargs):
         data['device'] = 'cpu'
 
     from EasyMLR import check_X_y
-    check_X_y(X,y)
+    X, y = check_X_y(X,y)
 
     # Suppress warnings
     warnings.filterwarnings('ignore')
