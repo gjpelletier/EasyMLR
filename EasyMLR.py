@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.70"
+__version__ = "1.1.71"
 
 def check_X_y(X,y):
 
@@ -91,7 +91,7 @@ def check_X_y(X,y):
         y = pd.Series(y)
         y.name = 'y'
 
-return(X, y)
+    return X, y
 
 def show_optuna(study):
 
