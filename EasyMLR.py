@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.72"
+__version__ = "1.1.73"
 
 def check_X_y(X,y):
 
@@ -123,7 +123,11 @@ def show_optuna(study):
     optuna.visualization.matplotlib.plot_optimization_history(study)
     plt.title("Optimization History")
     plt.xlabel("Trial Number")
-    plt.ylabel("Mean Squared Error")
+    if ('C' in study.best_params 
+        and 'k_best' in study.best_params):
+        plt.ylabel("Accuracy Score")
+    else:
+        plt.ylabel("Mean Squared Error")
     # plt.savefig('optuna_optimization_history.png', 
     #             dpi=plt.gcf().dpi, bbox_inches='tight') 
     plt.savefig('optuna_optimization_history.png', 
