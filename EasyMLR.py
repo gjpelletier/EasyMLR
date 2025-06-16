@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.74"
+__version__ = "1.1.75"
 
 def check_X_y(X,y):
 
