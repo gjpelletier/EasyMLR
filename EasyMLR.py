@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.75"
+__version__ = "1.1.76"
 
 def check_X_y(X,y):
 
@@ -94,6 +94,86 @@ def check_X_y(X,y):
         y.name = 'y'
 
     return X, y
+
+def preprocess_train(df, threshold=10, scale='minmax'):
+    """
+    Identifies categorical numerical columns, applies one-hot encoding, 
+    and scales remaining numerical features using MinMaxScaler.
+
+    Args:
+        df (pd.DataFrame): Input DataFrame of train data
+        threshold (int): Max number of unique values to classify numerical features as categorical.
+        scale: 'minmax'= MinMaxScaler, 'standard'= StandardScaler        
+
+    Returns:
+        pd.DataFrame: Preprocessed DataFrame of train data ready for logistic regression.
+    """
+
+    import pandas as pd
+    from sklearn.preprocessing import OneHotEncoder, MinMaxScaler, StandardScaler
+    
+    # Identify numerical columns
+    numerical_cols = df.select_dtypes(include=['number']).columns
+    
+    # Detect categorical numerical columns based on unique value count
+    categorical_cols = [col for col in numerical_cols if df[col].nunique() <= threshold]
+    continuous_cols = [col for col in numerical_cols if col not in categorical_cols]
+
+    # Apply one-hot encoding to categorical columns
+    encoder = OneHotEncoder(handle_unknown='ignore', sparse_output=False)
+    encoded_df = pd.DataFrame(encoder.fit_transform(df[categorical_cols]), 
+                              columns=encoder.get_feature_names_out(categorical_cols),
+                              index=df.index)
+
+    # Apply MinMaxScaler to continuous numerical features
+    if scale == 'minmax':
+        scaler = MinMaxScaler()
+        scaled_df = pd.DataFrame(scaler.fit_transform(df[continuous_cols]), 
+            columns=continuous_cols, 
+            index=df.index)
+    else:
+        scaler = StandardScaler()
+        scaled_df = pd.DataFrame(scaler.fit_transform(df[continuous_cols]), 
+            columns=continuous_cols, 
+            index=df.index)
+
+    # Combine transformed data
+    df_processed = df.drop(columns=categorical_cols + continuous_cols).join(encoded_df).join(scaled_df)
+
+    return df_processed, encoder, scaler, categorical_cols, continuous_cols
+
+def preprocess_test(X_test, encoder, scaler, categorical_cols, continuous_cols):
+    """
+    Applies one-hot encoding and min-max scaling to test data 
+    using the encoder, scaler, categorical_cols, and continuous_cols
+    determined previously from the train data using preprocess_train
+    to prevent data leakage between train and test data
+    
+    Args:
+        df (pd.DataFrame): Input DataFrame of test data
+        encoder (object): OneHotEncoder object fit to the train data
+        scaler (object): MinMaxScaler object fit to the train data
+        categorical_cols (list): categorical features identified from train data
+        continuous_cols (list): continuous numerical features identified from train data        
+
+    Returns:
+        pd.DataFrame: Preprocessed DataFrame of test data ready for logistic regression.
+    """
+    import pandas as pd
+    from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
+
+    X_test_encoded = pd.DataFrame(encoder.transform(X_test[categorical_cols]), 
+        columns=encoder.get_feature_names_out(categorical_cols),
+        index=X_test.index)
+
+    X_test_scaled = pd.DataFrame(scaler.transform(X_test[continuous_cols]), 
+                                 columns=continuous_cols, 
+                                 index=X_test.index)
+
+    X_test_processed = X_test.drop(
+        columns=categorical_cols + continuous_cols).join(X_test_encoded).join(X_test_scaled)
+
+    return X_test_processed
 
 def show_optuna(study):
 
