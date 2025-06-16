@@ -9,7 +9,7 @@ setup(
     author='Greg Pelletier',
     py_modules=['EasyMLR'], 
     install_requires=[
-        'numpy','pandas','statsmodels',
+        'numpy','pandas','statsmodels','seaborn',
         'scikit-learn','tabulate','matplotlib',
         'xgboost','lightgbm','mlxtend','optuna'],
 )
