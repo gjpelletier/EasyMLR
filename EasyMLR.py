@@ -7802,6 +7802,61 @@ def knn_auto(X, y, **kwargs):
 
     return fitted_model, model_outputs
 
+def extract_metrics(study, model, X_test, y_test):
+    """
+    Extracts evaluation metrics from the best trial in an Optuna study.
+    """
+
+    from sklearn.metrics import accuracy_score, precision_score, recall_score
+    from sklearn.metrics import f1_score, roc_auc_score, log_loss, confusion_matrix
+
+    best_params = study.best_trial.params
+    model.fit(X_test, y_test)  # Fit using test data for evaluation
+    
+    y_pred = model.predict(X_test)
+    y_prob = model.predict_proba(X_test)[:, 1]  # Probabilities for ROC-AUC & Log Loss
+    
+    metrics = {
+        "Accuracy": accuracy_score(y_test, y_pred),
+        "Precision": precision_score(y_test, y_pred),
+        "Recall": recall_score(y_test, y_pred),
+        "F1 Score": f1_score(y_test, y_pred),
+        "ROC-AUC Score": roc_auc_score(y_test, y_prob),
+        "Log Loss": log_loss(y_test, y_prob),
+        "Confusion Matrix": confusion_matrix(y_test, y_pred)
+    }
+    
+    return metrics
+
+def pseudo_r2_mcfadden(model, X, y):
+    """
+    Calculate McFadden's pseudo-R² for a fitted scikit-learn LogisticRegression model.
+    
+    Parameters:
+        model: A fitted sklearn.linear_model.LogisticRegression object
+        X: Features used to fit the model
+        y: True binary labels
+    
+    Returns:
+        McFadden's pseudo-R²
+    """
+
+    import numpy as np
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.metrics import log_loss
+    
+    # Log-likelihood of the full model (negative log loss * -1)
+    pred_probs = model.predict_proba(X)
+    ll_full = -log_loss(y, pred_probs, normalize=False)
+
+    # Log-likelihood of the null model (intercept only)
+    y_mean = np.mean(y)
+    pred_probs_null = np.full_like(pred_probs, [1 - y_mean, y_mean])
+    ll_null = -log_loss(y, pred_probs_null, normalize=False)
+
+    return 1 - ll_full / ll_null
+
+
 
 
 
