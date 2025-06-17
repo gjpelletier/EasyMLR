@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.83"
+__version__ = "1.1.84"
 
 def check_X_y(X,y):
 
@@ -8089,6 +8089,257 @@ def plot_logistic_results_test(model, X, y,
     
     return results
 
+def logistic(X, y, **kwargs):
+
+    """
+    LogisticRegression with user-specified inputs
+    Beta version
+
+    by
+    Greg Pelletier
+    gjpelletier@gmail.com
+    17-June-2025
+
+    REQUIRED INPUTS (X and y should have same number of rows and 
+    only contain real numbers)
+    X = dataframe or array of the candidate independent variables 
+        (as many columns of data as needed)
+    y = dataframe or array of the dependent variable (one column of data)
+
+    OPTIONAL KEYWORD ARGUMENTS
+    **kwargs (optional keyword arguments):
+        # general params that are user-specified
+        preprocess= True,    # True for OneHotEncoder and MinMaxScaler
+        encoder= None,            # pre-fitted OneHotEncoder
+        scaler= None,             # pre-fitted MinMaxScaler
+        categorical_cols= None,   # pre-fitted categorical columns
+        continuous_cols= None,    # pre-fitted continupus columns
+        selected_features= None,  # pre-optimized selected features
+        verbose= 'on',      # display summary stats and plots
+        gpu= True,          # autodetect gpu if present
+        threshold= 10,      # threshold for number of 
+                            # unique values to identify
+                            # categorical numeric features
+                            # to encode with OneHotEncoder
+         
+        # [min,max] model params that are optimized by optuna
+        C= 1.0,             # Inverse regularization strength
+
+        # categorical model params that are optimized by optuna
+        solver= lbfgs',,    # optimization algorithm
+        penalty= l2,        # norm of the penalty
+        
+        # model extra_params that are optional user-specified
+        random_state= 42,   # random seed for reproducibility
+        max_iter= 500,      # max iterations for solver
+        n_jobs= -1,         # number of jobs to run in parallel    
+
+    Note: MinMaxScaler standardizing of continuous numerical features 
+    and OneHoteEncoder encoding of categorical numerical features is optional
+    and is applied by default with kwarg preprocess=True.
+    If fitted encoder, scaler, categorical_cols, and continuous_cols
+    are provided then these will be used for preprocessing.
+
+    RETURNS
+        fitted_model, model_outputs
+            model_objects is the fitted model object
+            model_outputs is a dictionary of the following outputs: 
+                - 'preprocess': True for OneHotEncoder and MinMaxScaler
+                - 'encoder': OneHotEncoder for categorical X
+                - 'scaler': MinMaxScaler for continuous X
+                - 'categorical_cols': categorical numerical columns 
+                                        of original X
+                - 'continous_cols': continuous numerical columns
+                                        of original X
+                - 'stats': best model goodness of fit metrics for train data
+                - 'params': core model parameters used for fitting
+                - 'extra_params': extra model paramters used for fitting
+                - 'selected_features': selected features for fitting
+                - 'X_final': final pre-processed and selected features
+                - 'y_pred': best model predicted y
+
+    NOTE
+    Do any necessary/optional cleaning of the data before 
+    passing the data to this function. X and y should have the same number of rows
+    and contain only real numbers with no missing values. X can contain as many
+    columns as needed, but y should only be one column. X should have unique
+    column names for for each column if it is a dataframe
+
+    EXAMPLE 
+    model_objects, model_outputs = logistic_auto(X, y)
+
+    """
+
+    from EasyMLR import preprocess_train, preprocess_test 
+    from EasyMLR import extract_logistic_metrics, pseudo_r2
+    from EasyMLR import plot_confusion_matrix, plot_roc_auc
+    from EasyMLR import detect_gpu 
+    import time
+    import pandas as pd
+    import numpy as np
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.neighbors import KNeighborsRegressor
+    from sklearn.preprocessing import StandardScaler, MinMaxScaler
+    from sklearn.decomposition import PCA
+    from sklearn.model_selection import cross_val_score, train_test_split
+    from sklearn.metrics import mean_squared_error
+    from sklearn.base import clone
+    from sklearn.metrics import PredictionErrorDisplay, confusion_matrix
+    from sklearn.model_selection import train_test_split
+    import matplotlib.pyplot as plt
+    import warnings
+    import sys
+    import statsmodels.api as sm
+    import optuna
+    import seaborn as sns
+
+    # Define default values of input data arguments
+    defaults = {
+
+        # general params that are user-specified
+        'preprocess': True,    # True for OneHotEncoder and MinMaxScaler
+        'encoder': None,                   # pre-fitted OneHotEncoder
+        'scaler': None,                    # pre-fitted MinMaxScaler
+        'categorical_cols': None,          # pre-fitted categorical columns
+        'continuous_cols': None,           # pre-fitted continupus columns
+        'selected_features': None,         # pre-optimized selected features
+        'verbose': 'on',
+        'gpu': True,                       # autodetect gpu if present
+        'threshold': 10,                   # threshold for number of 
+                                           # unique values for 
+                                           # categorical numeric features
+        
+        # [min,max] model params that are optimized by optuna
+        'C': 1.0,                          # Inverse regularization strength
+
+        # categorical model params that are optimized by optuna
+        'solver': 'lbfgs',                 # optimization algorithm
+        'penalty': 'l2',                   # norm of the penalty
+        
+        # model extra_params that are optional user-specified
+        'random_state': 42,                # random seed for reproducibility
+        'max_iter': 500,                   # max iterations for  solver
+        'n_jobs': -1,                      # number of jobs to run in parallel    
+    }
+
+    # Update input data argumements with any provided keyword arguments in kwargs
+    data = {**defaults, **kwargs}
+
+    # Auto-detect if GPU is present and use GPU if present
+    if data['gpu']:
+        use_gpu = detect_gpu()
+        if use_gpu:
+            data['device'] = 'gpu'
+        else:
+            data['device'] = 'cpu'
+    else:
+        data['device'] = 'cpu'
+
+    from EasyMLR import check_X_y
+    # print('before preprocess_train: ',X.shape, y.shape)
+    X, y = check_X_y(X,y)
+    # print('after check_X_y: ',X.shape, y.shape,X.columns)
+
+    # Suppress warnings
+    warnings.filterwarnings('ignore')
+
+    # Set start time for calculating run time
+    start_time = time.time()
+
+    # Set global random seed
+    np.random.seed(data['random_state'])
+
+    # Initialize output dictionaries
+    model_objects = {}
+    model_outputs = {}
+
+    if data['preprocess']:
+        if (data['encoder']!=None and data['scaler']!=None 
+            and data['categorical_cols']!=None and data['continuous_cols']!=None):
+            X = preprocess_test(X, 
+                encoder=data['encoder'],
+                scaler=data['scaler'],
+                categorical_cols=data['categorical_cols'], 
+                continuous_cols=data['continuous_cols'])
+        else:
+            X, encoder, scaler, cat_cols, num_cols = preprocess_train(
+                X, threshold=data['threshold'])
+            model_outputs['encoder'] = encoder                     
+            model_outputs['scaler'] = scaler                     
+            model_outputs['categorical_cols'] = categorical_cols                    
+            model_outputs['continuous_cols'] = continuous_cols                         
+    if data['selected_features'] == None:
+        data['selected_features'] = X.columns
+    else:
+        X = X[data['selected_features']]
+    
+    # save preprocess outputs
+    model_outputs['preprocess'] = data['preprocess']   
+    model_outputs['X_final'] = X.copy()
+    model_outputs['selected_features'] = data['selected_features']
+    
+    print('Fitting LogisticRegression model with best parameters, please wait ...')
+
+    params = {
+        'C': data['C'],                    # Inverse regularization strength
+        'solver': data['solver'],          # optimization algorithm
+        'penalty': data['penalty']         # norm of the penalty
+    }
+    
+    extra_params = {
+        'random_state': data['random_state'],
+        'max_iter': data['max_iter'],
+        'n_jobs': data['n_jobs'],
+        'verbose': 0
+    }
+
+    # save params and extra_params
+    model_outputs['params'] = params
+    model_outputs['extra_params'] = extra_params
+
+    fitted_model = LogisticRegression(**params, **extra_params).fit(X,y)
+
+    if data['verbose'] == 'on':
+
+        # confusion matrix
+        selected_features = model_outputs['selected_features']
+        hfig = plot_confusion_matrix(fitted_model, X[selected_features], y)
+        hfig.savefig("LogisticRegression_confusion_matrix.png", dpi=300)
+        
+        # ROC curve with AUC
+        selected_features = model_outputs['selected_features']
+        hfig = plot_roc_auc(fitted_model, X[selected_features], y)
+        hfig.savefig("LogisticRegression_ROC_curve.png", dpi=300)
+        
+    # Goodness of fit statistics
+    metrics = extract_logistic_metrics(
+        fitted_model, 
+        X[model_outputs['selected_features']], y)
+    stats = pd.DataFrame([metrics]).T
+    stats.index.name = 'Statistic'
+    stats.columns = ['LogisticRegression']
+    model_outputs['stats'] = stats
+    model_outputs['y_pred'] = fitted_model.predict(X[model_outputs['selected_features']])
+
+    if data['verbose'] == 'on':
+        print('')
+        print("LogisticRegression goodness of fit to training data in model_outputs['stats']:")
+        print('')
+        print(model_outputs['stats'].to_markdown(index=True))
+        print('')
+    
+    # Print the run time
+    fit_time = time.time() - start_time
+
+    print('Done')
+    print(f"Time elapsed: {fit_time:.2f} sec")
+    print('')
+
+    # Restore warnings to normal
+    warnings.filterwarnings("default")
+
+    return fitted_model, model_outputs
+
 def logistic_objective(trial, X, y, **kwargs):
     '''
     Objective function used by optuna 
@@ -8210,11 +8461,11 @@ def logistic_auto(X, y, **kwargs):
 
         # categorical model params that are optimized by optuna
         solver= ['liblinear', 'lbfgs', 'saga'],   # optimization algorithm
-        penalty= ['l1', 'l2', 'elasticnet'],      # norm of the penalty
+        penalty= ['l1', 'l2],                     # norm of the penalty
         
         # model extra_params that are optional user-specified
         random_state= 42,                 # random seed for reproducibility
-        max_iter= 500,
+        max_iter= 500,                    # max iterations for solver
         n_jobs= -1,                       # number of jobs to run in parallel    
 
     Note: MinMaxScaler standardizing of continuous numerical features 
@@ -8301,7 +8552,7 @@ def logistic_auto(X, y, **kwargs):
         
         # model extra_params that are optional user-specified
         'random_state': 42,                 # random seed for reproducibility
-        'max_iter': 500,
+        'max_iter': 500,                    # max iterations for  solver
         'n_jobs': -1,                       # number of jobs to run in parallel    
     }
 
