@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.77"
+__version__ = "1.1.78"
 
 def check_X_y(X,y):
 
@@ -7940,6 +7940,97 @@ def extract_logistic_regression_metrics(model, X, y):
     metrics['n_samples'] = X.shape[0]
     
     return metrics
+
+def plot_confusion_matrix(model, X, y):
+    '''
+    plot the confusion matrix
+    for binary or multinomial LogisticRegression.
+    '''
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from sklearn.metrics import confusion_matrix
+    import seaborn as sns
+
+    y_pred = model.predict(X)
+    cm = confusion_matrix(y, y_pred)        
+    hfig = plt.figure(figsize=(6,4))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+    plt.xlabel("Predicted")
+    plt.ylabel("Actual")
+    plt.title("Confusion Matrix")
+
+    return hfig
+    
+def plot_roc_auc(model, X, y):
+    """
+    Plots ROC curve(s) and computes AUC score(s) 
+    for binary or multinomial LogisticRegression.
+    
+    Parameters:
+        model: Fitted sklearn LogisticRegression model
+        X: Feature matrix
+        y: True labels
+    
+    Returns:
+        None (displays the plot)
+    """
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from sklearn.metrics import roc_curve, auc
+    from sklearn.preprocessing import label_binarize
+    from itertools import cycle
+    
+    y_score = model.predict_proba(X)
+    classes = model.classes_
+    n_classes = len(classes)
+
+    # Binarize the output
+    y_bin = label_binarize(y, classes=classes)
+
+    # plt.figure(figsize=(8, 6))
+    hfig = plt.figure(figsize=(6, 4))
+
+    if n_classes == 2:
+        # Binary classification case
+        fpr, tpr, _ = roc_curve(y_bin.ravel(), y_score[:, 1])
+        roc_auc = auc(fpr, tpr)
+        plt.plot(fpr, tpr, color='darkorange', lw=2, 
+                 label=f"ROC curve (AUC = {roc_auc:.2f})")
+    else:
+        # Multiclass case - one ROC curve per class
+        colors = cycle(['blue', 'red', 'green', 'purple', 'orange', 'cyan'])
+        for i, color in zip(range(n_classes), colors):
+            fpr, tpr, _ = roc_curve(y_bin[:, i], y_score[:, i])
+            roc_auc = auc(fpr, tpr)
+            plt.plot(fpr, tpr, color=color, lw=2, 
+                     label=f"Class {classes[i]} (AUC = {roc_auc:.3f})")
+        
+        # Macro-average AUC (optional summary line)
+        all_fpr = np.unique(np.concatenate(
+            [roc_curve(y_bin[:, i], y_score[:, i])[0] for i in range(n_classes)]))
+        mean_tpr = np.zeros_like(all_fpr)
+        for i in range(n_classes):
+            fpr, tpr, _ = roc_curve(y_bin[:, i], y_score[:, i])
+            mean_tpr += np.interp(all_fpr, fpr, tpr)
+        mean_tpr /= n_classes
+        macro_auc = auc(all_fpr, mean_tpr)
+        plt.plot(all_fpr, mean_tpr, color='black', linestyle='--', 
+                 lw=2, label=f"Average (AUC = {macro_auc:.3f})")
+
+    # plt.plot([0, 1], [0, 1], color='gray', linestyle='--', lw=1)
+    plt.plot([0, 1], [0, 1], linestyle='--', lw=1)
+
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("ROC Curve")
+    plt.legend(loc="lower right")
+    # plt.grid(True)
+    plt.tight_layout()
+    # plt.show()
+
+    return hfig
 
 
 
