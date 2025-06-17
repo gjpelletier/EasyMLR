@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.85"
+__version__ = "1.1.86"
 
 def check_X_y(X,y):
 
@@ -8101,12 +8101,8 @@ def plot_roc_auc(model, X, y):
 
     return hfig
 
-def plot_logistic_results_test(model, X, y, 
-    encoder=None, 
-    scaler=None, 
-    categorical_cols=None,
-    continuous_cols=None,
-    selected_features=None):
+def plot_logistic_results_test(
+        model, X, y, preprocess_result=None, selected_features=None):
     '''
     plot the confusion matrix and ROC curve and fitness metrics
     for test data sets for LogisticRegression
@@ -8124,11 +8120,9 @@ def plot_logistic_results_test(model, X, y,
     if selected_features==None:
         selected_features = X.columns
 
-    if (encoder!=None and scaler!=None 
-        and categorical_cols!=None and continuous_cols!=None):
-        # print('preprocessing')
-        X = X.copy()
-        X = preprocess_test(X, encoder, scaler, categorical_cols, continuous_cols)
+    if preprocess_result!=None:
+        X = X.copy()    # copy X to avoid changing the original
+        X = preprocess_test(X, data['preprocess_result'])
 
     # Goodness of fit statistics
     metrics = extract_logistic_metrics(
