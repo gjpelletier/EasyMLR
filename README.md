@@ -187,7 +187,7 @@ from EasyMLR import plot_logistic_results_test
 
 ## Example 1. Automatic cross-validated optimization of LogisticRegression hyperparameters
 
-In this example we will use **logistic_auto** to automatically optimize the XGBoost hyperparameters using cross-validation. The logistic_auto function encodes and standardizes the X values by default. 
+In this example we will use **logistic_auto** to automatically optimize the LogisticRegression hyperparameters using cross-validation. The logistic_auto function encodes and standardizes the X values by default. 
 
 Run the following code:
 ```
