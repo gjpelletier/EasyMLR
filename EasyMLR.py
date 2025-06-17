@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.87"
+__version__ = "1.1.88"
 
 def check_X_y(X,y):
 
@@ -8737,10 +8737,10 @@ def logistic_auto(X, y, **kwargs):
         hfig = plot_confusion_matrix(fitted_model, X[selected_features], y)
         hfig.savefig("LogisticRegression_confusion_matrix.png", dpi=300)
         
-        # # ROC curve with AUC
-        # selected_features = model_outputs['selected_features']
-        # hfig = plot_roc_auc(fitted_model, X[selected_features], y)
-        # hfig.savefig("LogisticRegression_ROC_curve.png", dpi=300)
+        # ROC curve with AUC
+        selected_features = model_outputs['selected_features']
+        hfig = plot_roc_auc(fitted_model, X[selected_features], y)
+        hfig.savefig("LogisticRegression_ROC_curve.png", dpi=300)
         
     # Goodness of fit statistics
     metrics = extract_logistic_metrics(
