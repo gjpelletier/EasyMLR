@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.86"
+__version__ = "1.1.87"
 
 def check_X_y(X,y):
 
@@ -8106,10 +8106,10 @@ def plot_logistic_results_test(
     '''
     plot the confusion matrix and ROC curve and fitness metrics
     for test data sets for LogisticRegression
-    using the model, encoder, scaler, 
-    categorical_cols, continuous_cols, and selected_features
+    using the preprocess_result and selected_features 
     from the fitted model using training data
-    previously saved by using logistic_auto
+    previously saved by using logistic_auto, logistic, 
+    or preprocess_train
     '''
 
     import numpy as np
@@ -8122,7 +8122,7 @@ def plot_logistic_results_test(
 
     if preprocess_result!=None:
         X = X.copy()    # copy X to avoid changing the original
-        X = preprocess_test(X, data['preprocess_result'])
+        X = preprocess_test(X, preprocess_result)
 
     # Goodness of fit statistics
     metrics = extract_logistic_metrics(
