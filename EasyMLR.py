@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.81"
+__version__ = "1.1.82"
 
 def check_X_y(X,y):
 
@@ -7927,12 +7927,12 @@ def extract_logistic_metrics(model, X, y):
     average_method = 'binary' if len(np.unique(y)) == 2 else 'macro'
 
     metrics = {
+        "mcfadden_pseudo_r2": pseudo_r2(model, X, y),
         "accuracy": accuracy_score(y, y_pred),
         "f1_score": f1_score(y, y_pred, average=average_method),
         "precision": precision_score(y, y_pred, average=average_method),
         "recall": recall_score(y, y_pred, average=average_method),
-        "log_loss": log_loss(y, y_proba),
-        "mcfadden_pseudo_r2": pseudo_r2(model, X, y)
+        "log_loss": log_loss(y, y_proba)
     }
 
     # Brier score only valid for binary: take prob class 1
