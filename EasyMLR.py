@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.82"
+__version__ = "1.1.83"
 
 def check_X_y(X,y):
 
@@ -8089,4 +8089,371 @@ def plot_logistic_results_test(model, X, y,
     
     return results
 
+def logistic_objective(trial, X, y, **kwargs):
+    '''
+    Objective function used by optuna 
+    to find the optimum hyper-parameters for 
+    sklearn KNeighborsRegressor
+    '''
+    import numpy as np
+    import pandas as pd
+    from sklearn.model_selection import cross_val_score, KFold, StratifiedKFold
+    from sklearn.feature_selection import SelectKBest, mutual_info_regression
+    # from sklearn.decomposition import PCA
+    from sklearn.metrics import accuracy_score
+    from sklearn.model_selection import train_test_split
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.feature_selection import SelectKBest, chi2
+    import optuna
+    
+    # Set global random seed
+    np.random.seed(kwargs['random_state'])
+
+    # Feature Selection: Optimize number of features before PCA
+    if kwargs['feature_selection']:
+        num_features = trial.suggest_int("num_features", 
+            max(5, X.shape[1] // 10), 
+            X.shape[1]) 
+        selector = SelectKBest(mutual_info_regression, k=num_features)
+        # X_selected = selector.fit_transform(X, y)
+        X_sel = selector.fit_transform(X, y)
+        # Get indices of selected features
+        selected_indices = selector.get_support(indices=True)
+        # Get names of selected features
+        # feature_names = [f"Feature_{i}" for i in range(X.shape[1])]  # Assign names to features
+        feature_names = kwargs['feature_names']
+        selected_features = np.array(feature_names)[selected_indices].tolist()
+        # print('selected_features: ',selected_features)
+        X_sel = pd.DataFrame(X_sel)
+        X_sel.columns = selected_features
+        X_sel.index = X.index
+        X = X_sel
+        # print('X.columns: ',X.shape, X.columns)
+    else:
+        selected_features = kwargs['feature_names']
+
+    params = {
+        # C = trial.suggest_loguniform('C', 1e-4, 10)  # Regularization strength
+        "C": trial.suggest_float("C",
+            kwargs["C"][0], kwargs["C"][1], log=True),
+        'solver': trial.suggest_categorical('solver', 
+            kwargs['solver']),
+    }
+
+    params['penalty']= trial.suggest_categorical('penalty', 
+            kwargs['penalty']) if params['solver'] in ['liblinear', 'saga'] else 'l2'
+    
+    extra_params = {
+        'random_state': kwargs['random_state'],
+        'max_iter': kwargs['max_iter'],
+        'n_jobs': kwargs['n_jobs'],
+        'verbose': 0
+    }
+        
+    # Define model
+    model = LogisticRegression(**params, **extra_params) 
+
+    # cross-validation
+    cv = StratifiedKFold(
+        n_splits=kwargs['n_splits'], 
+        shuffle=True, 
+        random_state=kwargs['random_state'])
+    score = cross_val_score(
+        model, X[selected_features], y, cv=cv, scoring="accuracy")    
+    # score = cross_val_score(
+    #     model, X[selected_indices], y, cv=cv, scoring="accuracy")    
+
+    accuracy = np.mean(score)
+
+    model.fit(X[selected_features], y)
+
+    trial.set_user_attr("model", model)
+    trial.set_user_attr("accuracy", accuracy)
+    trial.set_user_attr("selected_features", selected_features)
+    # trial.set_user_attr("selected_indices", selected_indices)
+    
+    return accuracy
+   
+def logistic_auto(X, y, **kwargs):
+
+    """
+    Autocalibration of LogisticRegression hyperparameters
+    Beta version
+
+    by
+    Greg Pelletier
+    gjpelletier@gmail.com
+    15-June-2025
+
+    REQUIRED INPUTS (X and y should have same number of rows and 
+    only contain real numbers)
+    X = dataframe or array of the candidate independent variables 
+        (as many columns of data as needed)
+    y = dataframe or array of the dependent variable (one column of data)
+
+    OPTIONAL KEYWORD ARGUMENTS
+    **kwargs (optional keyword arguments):
+        # general params that are user-specified
+        n_trials= 50,       # number of optuna trials
+        preprocess= True,   # True for OneHotEncoder and MinMaxScaler
+        verbose= 'on',      # display summary stats and plots
+        gpu= True,          # autodetect gpu if present
+        n_splits= 5,        # number of splits for KFold CV
+        pruning= False,     # prune poor optuna trials
+        threshold= 10,      # threshold for number of 
+                            # unique values to identify
+                            # categorical numeric features
+                            # to encode with OneHotEncoder
+         
+        # [min,max] model params that are optimized by optuna
+        C= [1e-4, 10.0],                  # Inverse regularization strength
+
+        # categorical model params that are optimized by optuna
+        solver= ['liblinear', 'lbfgs', 'saga'],   # optimization algorithm
+        penalty= ['l1', 'l2', 'elasticnet'],      # norm of the penalty
+        
+        # model extra_params that are optional user-specified
+        random_state= 42,                 # random seed for reproducibility
+        max_iter= 500,
+        n_jobs= -1,                       # number of jobs to run in parallel    
+
+    Note: MinMaxScaler standardizing of continuous numerical features 
+    and OneHoteEncoder encoding of categorical numerical features is optional
+    and is applied by default with kwarg preprocess=True
+
+    RETURNS
+        fitted_model, model_outputs
+            model_objects is the fitted model object
+            model_outputs is a dictionary of the following outputs: 
+                - 'preprocess': True for OneHotEncoder and MinMaxScaler
+                - 'encoder': OneHotEncoder for categorical X
+                - 'scaler': MinMaxScaler for continuous X
+                - 'categorical_cols': categorical numerical columns 
+                                        of original X
+                - 'continous_cols': continuous numerical columns
+                                        of original X
+                - 'optuna_study': optimzed optuna study object
+                - 'optuna_model': optimzed optuna model object
+                - 'best_trial': best trial from the optuna study
+                - 'feature_selection' = option to select features (True, False)
+                - 'selected_features' = selected features
+                - 'best_params': best model hyper-parameters found by optuna
+                - 'extra_params': other model options used to fit the model
+                - 'stats': best model goodness of fit metrics for train data
+                - 'y_pred': best model predicted y
+
+    NOTE
+    Do any necessary/optional cleaning of the data before 
+    passing the data to this function. X and y should have the same number of rows
+    and contain only real numbers with no missing values. X can contain as many
+    columns as needed, but y should only be one column. X should have unique
+    column names for for each column if it is a dataframe
+
+    EXAMPLE 
+    model_objects, model_outputs = logistic_auto(X, y)
+
+    """
+
+    from EasyMLR import preprocess_train 
+    from EasyMLR import extract_logistic_metrics, pseudo_r2
+    from EasyMLR import plot_confusion_matrix, plot_roc_auc
+    from EasyMLR import detect_gpu 
+    import time
+    import pandas as pd
+    import numpy as np
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.neighbors import KNeighborsRegressor
+    from sklearn.preprocessing import StandardScaler, MinMaxScaler
+    from sklearn.decomposition import PCA
+    from sklearn.model_selection import cross_val_score, train_test_split
+    from sklearn.metrics import mean_squared_error
+    from sklearn.base import clone
+    from sklearn.metrics import PredictionErrorDisplay, confusion_matrix
+    from sklearn.model_selection import train_test_split
+    import matplotlib.pyplot as plt
+    import warnings
+    import sys
+    import statsmodels.api as sm
+    import optuna
+    import seaborn as sns
+
+    # Define default values of input data arguments
+    defaults = {
+
+        # general params that are user-specified
+        'n_trials': 50,                     # number of optuna trials
+        'preprocess': True,                 # encode and standardize X
+        'verbose': 'on',
+        'gpu': True,                        # Autodetect to use gpu if present
+        'n_splits': 5,                      # number of splits for KFold CV
+        'pruning': False,                   # prune poor optuna trials
+        'feature_selection': True,          # optuna feature selection
+        'threshold': 10,                    # threshold for number of 
+                                            # unique values for 
+                                            # categorical numeric features
+        
+        # [min,max] model params that are optimized by optuna
+        'C': [1e-4, 10.0],                  # Inverse regularization strength
+
+        # categorical model params that are optimized by optuna
+        'solver': ['liblinear', 'lbfgs', 'saga'],   # optimization algorithm
+        'penalty': ['l1', 'l2'],      # norm of the penalty
+        
+        # model extra_params that are optional user-specified
+        'random_state': 42,                 # random seed for reproducibility
+        'max_iter': 500,
+        'n_jobs': -1,                       # number of jobs to run in parallel    
+    }
+
+    # Update input data argumements with any provided keyword arguments in kwargs
+    data = {**defaults, **kwargs}
+
+    # Auto-detect if GPU is present and use GPU if present
+    if data['gpu']:
+        use_gpu = detect_gpu()
+        if use_gpu:
+            data['device'] = 'gpu'
+        else:
+            data['device'] = 'cpu'
+    else:
+        data['device'] = 'cpu'
+
+    from EasyMLR import check_X_y
+    # print('before preprocess_train: ',X.shape, y.shape)
+    X, y = check_X_y(X,y)
+    # print('after check_X_y: ',X.shape, y.shape,X.columns)
+
+    # Suppress warnings
+    warnings.filterwarnings('ignore')
+
+    # Set start time for calculating run time
+    start_time = time.time()
+
+    # Set global random seed
+    np.random.seed(data['random_state'])
+
+    # Initialize output dictionaries
+    model_objects = {}
+    model_outputs = {}
+
+    if data['preprocess']:
+        X, encoder, scaler, cat_cols, num_cols = preprocess_train(
+            X, threshold=data['threshold'])
+    else:
+        encoder= None
+        scaler= None
+        cat_cols= None
+        num_cols= None
+    data['feature_names'] = X.columns
+    # print('after preprocess_train: ',X.shape, y.shape,X.columns)
+    
+    extra_params = {
+        'random_state': data['random_state'],
+        'max_iter': data['max_iter'],
+        'n_jobs': data['n_jobs'],
+        'verbose': 0
+    }
+
+    print('Running optuna to find best parameters, could take a few minutes, please wait...')
+    optuna.logging.set_verbosity(optuna.logging.ERROR)
+
+    if data['pruning']:
+        study = optuna.create_study(
+            direction="maximize", 
+            sampler=optuna.samplers.TPESampler(seed=data['random_state'], multivariate=True),
+            pruner=optuna.pruners.MedianPruner())
+    else:
+        study = optuna.create_study(
+            direction="maximize", 
+            sampler=optuna.samplers.TPESampler(seed=data['random_state'], multivariate=True))
+    
+    X_opt = X.copy()
+    study.optimize(
+        lambda trial: logistic_objective(trial, X_opt, y, **data), 
+        n_trials=data['n_trials'])
+
+    # save outputs
+    model_outputs['preprocess'] = data['preprocess']   
+    model_outputs['encoder'] = encoder                     
+    model_outputs['scaler'] = scaler                     
+    model_outputs['categorical_cols'] = cat_cols                     
+    model_outputs['continuous_cols'] = num_cols                     
+    model_outputs['X_opt'] = X
+    model_outputs['pruning'] = data['pruning']
+    model_outputs['optuna_study'] = study
+    model_outputs['best_trial'] = study.best_trial
+    
+    # user attributes for optuna
+    model_outputs['optuna_model'] = study.best_trial.user_attrs.get('model')
+    model_outputs['selected_features'] = study.best_trial.user_attrs.get('selected_features')
+    model_outputs['accuracy'] = study.best_trial.user_attrs.get('accuracy')
+
+    print('Fitting LogisticRegression model with best parameters, please wait ...')
+
+    # extract best_params from study and remove non-model params
+    best_params = study.best_params
+    if 'feature_selection' in best_params:
+        del best_params['feature_selection']
+    if 'num_features' in best_params:
+        del best_params['num_features']
+    model_outputs['best_params'] = best_params
+    model_outputs['extra_params'] = extra_params
+
+    # prepare X for use in the final fitted model
+    # print('before final fit: ',X.shape, y.shape,X.columns)
+    fitted_model = LogisticRegression(
+        **best_params, **extra_params).fit(
+        X[model_outputs['selected_features']],y)
+
+    if data['verbose'] == 'on':
+
+        # confusion matrix
+        selected_features = model_outputs['selected_features']
+        hfig = plot_confusion_matrix(fitted_model, X[selected_features], y)
+        hfig.savefig("LogisticRegression_confusion_matrix.png", dpi=300)
+        
+        # # ROC curve with AUC
+        # selected_features = model_outputs['selected_features']
+        # hfig = plot_roc_auc(fitted_model, X[selected_features], y)
+        # hfig.savefig("LogisticRegression_ROC_curve.png", dpi=300)
+        
+    # Goodness of fit statistics
+    metrics = extract_logistic_metrics(
+        fitted_model, 
+        X[model_outputs['selected_features']], y)
+    stats = pd.DataFrame([metrics]).T
+    stats.index.name = 'Statistic'
+    stats.columns = ['LogisticRegression']
+    model_outputs['stats'] = stats
+    model_outputs['y_pred'] = fitted_model.predict(X[model_outputs['selected_features']])
+
+    if data['verbose'] == 'on':
+        print('')
+        print("LogisticRegression goodness of fit to training data in model_outputs['stats']:")
+        print('')
+        print(model_outputs['stats'].to_markdown(index=True))
+        print('')
+    
+    # Print the run time
+    fit_time = time.time() - start_time
+
+    # Best parameters
+    # print(f"Best parameters: {study.best_params}")
+    print('')
+    print(f"Best-fit accuracy of CV test data: {study.best_value:.4f}")
+    print('')
+        
+    print('Done')
+    print(f"Time elapsed: {fit_time:.2f} sec")
+    print('')
+
+    # Restore warnings to normal
+    warnings.filterwarnings("default")
+
+    return fitted_model, model_outputs
+
+
+
+
+   
 
