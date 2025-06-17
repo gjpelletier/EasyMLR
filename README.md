@@ -31,8 +31,8 @@ The functions in EasyMLR allow the user to write one line of high-level python c
 - variance  inflation factors (if applicable)
 - plots of predicted vs actual and predicted vs residuals
 - figures showing other diagnostic descriptions of the analysis if applicable (e.g. coefficients vs alpha, MSE vs alpha, AIC and BIC vs alpha)
-- automatic cross-validated Bayesian optimization of hyperparameters
 - show plots of optuna optimization history, hyperparameter importance, and contour plots of relationships between hyperparameters and MSE 
+- automatic cross-validated Bayesian optimization of hyperparameters
 - automatic standardization of X and output of the scaler (optional)
 - automatic PCA transform of X with PCA-KNN regression and output of the optimized fitted PCA transformer (optional, knn_auto and knn)
 - automatic detection and use of GPU for computations (XGBoost and CatBoost)
