@@ -178,6 +178,7 @@ from EasyMLR import knn, knn_auto,
 from EasyMLR import lgbm, stacking, stepwise
 from EasyMLR import show_optuna
 from EasyMLR import plot_predictions_from_test
+from EasyMLR import plot_logistic_results_test
 ```
 
 
