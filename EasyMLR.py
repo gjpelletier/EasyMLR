@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.80"
+__version__ = "1.1.81"
 
 def check_X_y(X,y):
 
@@ -200,6 +200,9 @@ def show_optuna(study):
     print('')
     print("Best score:", study.best_value)
     print('')
+
+    # name of model object in the study
+    model_name = type(study.best_trial.user_attrs['model']).__name__
     
     # Generate optimization history plot
     optuna.visualization.matplotlib.plot_optimization_history(study)
@@ -209,9 +212,10 @@ def show_optuna(study):
         and 'k_best' in study.best_params):
         plt.ylabel("Accuracy Score")
     else:
-        plt.ylabel("Mean Squared Error")
-    # plt.savefig('optuna_optimization_history.png', 
-    #             dpi=plt.gcf().dpi, bbox_inches='tight') 
+        if model_name == 'LogisticRegression':
+            plt.ylabel("Accuracy")
+        else:
+            plt.ylabel("Mean Squared Error")
     plt.savefig('optuna_optimization_history.png', 
                 dpi=300, bbox_inches='tight') 
     plt.show()
@@ -263,11 +267,10 @@ def show_optuna(study):
         plt.savefig('optuna_n_neighbors_vs_leaf_size.png', 
                     dpi=300, bbox_inches='tight') 
         plt.show()
-    elif ('C' in study.best_params 
-        and 'k_best' in study.best_params):
-        optuna.visualization.matplotlib.plot_contour(study, params=["C", "k_best"])
-        plt.title("C vs. k_best")
-        plt.savefig('optuna_C_vs_k_best.png', 
+    elif model_name == 'LogisticRegression':
+        optuna.visualization.matplotlib.plot_contour(study, params=["C", "num_features"])
+        plt.title("C vs. num_features")
+        plt.savefig('optuna_C_vs_num_features.png', 
                     dpi=300, bbox_inches='tight') 
         plt.show()
     
