@@ -1,6 +1,6 @@
 # Tools for Machine Learning Regression in Python
 
-The EasyMLR module includes the following main Python functions to facilitate the use of sklearn, XGBoost, CatBoost, LightGBM, statsmodels, and optuna solvers: 
+The EasyMLR module includes the following main Python functions to facilitate the use of sklearn, XGBoost, CatBoost, LightGBM, statsmodels, and optuna solvers for linear and logistic regression: 
  
  - **logistic_auto** - LogisticRegression with automatic cross-validated optimization of the hyperparameters
  - **logistic** - LogisticRegression with user-specified hyperparameters
@@ -37,6 +37,8 @@ The functions in EasyMLR allow the user to write one line of high-level python c
 - automatic PCA transform of X with PCA-KNN regression and output of the optimized fitted PCA transformer (optional, knn_auto and knn)
 - automatic detection and use of GPU for computations (XGBoost and CatBoost)
 - automatic prevention of overfitting the training data with KNN regression (knn_auto)
+- automatic detection of categorical features and application of OneHotEncoder (LogisticRegression)
+- optimization of logistic regression for binomial or multinomial response variables
 
 ### Lasso
 
