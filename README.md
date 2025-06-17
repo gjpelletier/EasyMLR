@@ -38,6 +38,7 @@ The functions in EasyMLR allow the user to write one line of high-level python c
 - automatic detection and use of GPU for computations (XGBoost and CatBoost)
 - automatic prevention of overfitting the training data with KNN regression (knn_auto)
 - automatic detection of categorical features and application of OneHotEncoder (LogisticRegression)
+- optimized feature selection (LogisticRegression)
 - optimization of logistic regression for binomial or multinomial response variables
 
 ### Lasso
