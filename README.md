@@ -2,6 +2,8 @@
 
 The EasyMLR module includes the following main Python functions to facilitate the use of sklearn, XGBoost, CatBoost, LightGBM, statsmodels, and optuna solvers: 
  
+ - **logistic_auto** - LogisticRegression with automatic cross-validated optimization of the hyperparameters
+ - **logistic** - LogisticRegression with user-specified hyperparameters
  - **lasso** - LassoCV, LassoLarsCV, and LassoLarsIC using AIC/BIC
  - **ridge** - RidgeCV and Ridge using VIF
  - **elastic** - ElasticNetCV
