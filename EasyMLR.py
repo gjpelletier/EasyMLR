@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.78"
+__version__ = "1.1.79"
 
 def check_X_y(X,y):
 
@@ -7909,7 +7909,7 @@ def pseudo_r2(model, X, y):
     
     return 1 - ll_full / ll_null
 
-def extract_logistic_regression_metrics(model, X, y):
+def extract_logistic_metrics(model, X, y):
     """
     Extracts multiple evaluation metrics from a trained LogisticRegression model.
     Works with binary and multinomial classification.
