@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.84"
+__version__ = "1.1.85"
 
 def check_X_y(X,y):
 
@@ -11,6 +11,10 @@ def check_X_y(X,y):
     import pandas as pd
     import numpy as np
     import sys
+
+    # start with copies of X and y to avoid changing the original
+    X = X.copy()
+    y = y.copy()
 
     if isinstance(X, pd.DataFrame) and isinstance(y, pd.Series):
         ctrl = (X.index == y.index).all()
@@ -97,83 +101,145 @@ def check_X_y(X,y):
 
 def preprocess_train(df, threshold=10, scale='minmax'):
     """
-    Identifies categorical numerical columns, applies one-hot encoding, 
-    and scales remaining numerical features using MinMaxScaler.
+    Detects categorical (numeric and non-numeric) columns, applies one-hot encoding,
+    scales continuous numeric columns, and safely handles cases with missing types.
 
     Args:
-        df (pd.DataFrame): Input DataFrame of train data
-        threshold (int): Max number of unique values to classify numerical features as categorical.
-        scale: 'minmax'= MinMaxScaler, 'standard'= StandardScaler        
+        df (pd.DataFrame): Training data
+        threshold (int): Max unique values for numeric columns to be considered categorical
+        scale (str): 'minmax' or 'standard' for scaler selection
 
     Returns:
-        pd.DataFrame: Preprocessed DataFrame of train data ready for logistic regression.
+        dict: {
+            'df_processed': Preprocessed DataFrame,
+            'encoder': Fitted OneHotEncoder or None,
+            'scaler': Fitted Scaler or None,
+            'categorical_cols': List of all categorical columns,
+            'non_numeric_cats': List of object/category columns,
+            'continuous_cols': List of numeric continuous columns,
+            'category_mappings': Mapping of categories or {}
+        }
     """
-
     import pandas as pd
     from sklearn.preprocessing import OneHotEncoder, MinMaxScaler, StandardScaler
-    
-    # Identify numerical columns
-    numerical_cols = df.select_dtypes(include=['number']).columns
-    
-    # Detect categorical numerical columns based on unique value count
-    categorical_cols = [col for col in numerical_cols if df[col].nunique() <= threshold]
-    continuous_cols = [col for col in numerical_cols if col not in categorical_cols]
 
-    # Apply one-hot encoding to categorical columns
-    encoder = OneHotEncoder(handle_unknown='ignore', sparse_output=False)
-    encoded_df = pd.DataFrame(encoder.fit_transform(df[categorical_cols]), 
-                              columns=encoder.get_feature_names_out(categorical_cols),
-                              index=df.index)
+    # Start with a copy to avoid changing the original df
+    df = df.copy()
+    
+    # Identify numeric and non-numeric columns
+    numerical_cols = df.select_dtypes(include=['number']).columns.tolist()
+    non_numeric_cats = df.select_dtypes(include=['object', 'category']).columns.tolist()
 
-    # Apply MinMaxScaler to continuous numerical features
-    if scale == 'minmax':
-        scaler = MinMaxScaler()
-        scaled_df = pd.DataFrame(scaler.fit_transform(df[continuous_cols]), 
-            columns=continuous_cols, 
-            index=df.index)
+    # Detect categorical numeric columns
+    categorical_numeric = [col for col in numerical_cols if df[col].nunique() <= threshold]
+    continuous_cols = [col for col in numerical_cols if col not in categorical_numeric]
+
+    # Combine all categorical columns
+    all_cat_cols = categorical_numeric + non_numeric_cats
+
+    # One-hot encode if applicable
+    if all_cat_cols:
+        encoder = OneHotEncoder(handle_unknown='ignore', sparse_output=False)
+        encoded_array = encoder.fit_transform(df[all_cat_cols])
+        encoded_df = pd.DataFrame(encoded_array,
+                                  columns=encoder.get_feature_names_out(all_cat_cols),
+                                  index=df.index)
+        category_mappings = {
+            col: encoder.categories_[i].tolist()
+            for i, col in enumerate(all_cat_cols)
+        }
     else:
-        scaler = StandardScaler()
-        scaled_df = pd.DataFrame(scaler.fit_transform(df[continuous_cols]), 
-            columns=continuous_cols, 
-            index=df.index)
+        encoder = None
+        encoded_df = pd.DataFrame(index=df.index)
+        category_mappings = {}
 
-    # Combine transformed data
-    df_processed = df.drop(columns=categorical_cols + continuous_cols).join(encoded_df).join(scaled_df)
+    # Scale numeric continuous features if applicable
+    if continuous_cols:
+        scaler = MinMaxScaler() if scale == 'minmax' else StandardScaler()
+        scaled_array = scaler.fit_transform(df[continuous_cols])
+        scaled_df = pd.DataFrame(scaled_array, columns=continuous_cols, index=df.index)
+    else:
+        scaler = None
+        scaled_df = pd.DataFrame(index=df.index)
 
-    return df_processed, encoder, scaler, categorical_cols, continuous_cols
+    # Combine final output
+    remaining_cols = df.drop(columns=all_cat_cols + continuous_cols, errors='ignore')
+    df_processed = remaining_cols.join([encoded_df, scaled_df])
 
-def preprocess_test(X_test, encoder, scaler, categorical_cols, continuous_cols):
+    return {
+        'df_processed': df_processed,
+        'encoder': encoder,
+        'scaler': scaler,
+        'categorical_cols': all_cat_cols,
+        'non_numeric_cats': non_numeric_cats,
+        'continuous_cols': continuous_cols,
+        'category_mappings': category_mappings
+    }
+
+def preprocess_test(df_test, preprocess_results):
     """
-    Applies one-hot encoding and min-max scaling to test data 
-    using the encoder, scaler, categorical_cols, and continuous_cols
-    determined previously from the train data using preprocess_train
-    to prevent data leakage between train and test data
-    
+    Transforms the test DataFrame using the encoder, scaler, and column structure
+    from preprocess_train. Handles missing column types safely.
+
     Args:
-        df (pd.DataFrame): Input DataFrame of test data
-        encoder (object): OneHotEncoder object fit to the train data
-        scaler (object): MinMaxScaler object fit to the train data
-        categorical_cols (list): categorical features identified from train data
-        continuous_cols (list): continuous numerical features identified from train data        
+        df_test (pd.DataFrame): Input test DataFrame
+        preprocess_results (dict): Output from preprocess_train
 
     Returns:
-        pd.DataFrame: Preprocessed DataFrame of test data ready for logistic regression.
+        pd.DataFrame: Preprocessed test DataFrame
     """
     import pandas as pd
-    from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
+    import numpy as np
 
-    X_test_encoded = pd.DataFrame(encoder.transform(X_test[categorical_cols]), 
-        columns=encoder.get_feature_names_out(categorical_cols),
-        index=X_test.index)
+    encoder = preprocess_results['encoder']
+    scaler = preprocess_results['scaler']
+    categorical_cols = preprocess_results['categorical_cols']
+    non_numeric_cats = preprocess_results['non_numeric_cats']
+    continuous_cols = preprocess_results['continuous_cols']
 
-    X_test_scaled = pd.DataFrame(scaler.transform(X_test[continuous_cols]), 
-                                 columns=continuous_cols, 
-                                 index=X_test.index)
+    # Start with a copy to avoid changing the original test set
+    df_test = df_test.copy()
 
-    X_test_processed = X_test.drop(
-        columns=categorical_cols + continuous_cols).join(X_test_encoded).join(X_test_scaled)
+    # Handle categorical encoding
+    if encoder is not None and categorical_cols:
+        cat_cols_present = [col for col in categorical_cols if col in df_test.columns]
+        df_cat = df_test[cat_cols_present].copy()
 
-    return X_test_processed
+        # Add missing columns (required by encoder) as NaN
+        for col in categorical_cols:
+            if col not in df_cat.columns:
+                df_cat[col] = np.nan
+
+        encoded_array = encoder.transform(df_cat[categorical_cols])
+        encoded_df = pd.DataFrame(
+            encoded_array,
+            columns=encoder.get_feature_names_out(categorical_cols),
+            index=df_test.index
+        )
+    else:
+        encoded_df = pd.DataFrame(index=df_test.index)
+
+    # Handle numeric scaling
+    if scaler is not None and continuous_cols:
+        num_cols_present = [col for col in continuous_cols if col in df_test.columns]
+        df_num = df_test[num_cols_present].copy()
+
+        # Add missing continuous columns as zero (minmax-safe)
+        for col in continuous_cols:
+            if col not in df_num.columns:
+                df_num[col] = 0.0
+
+        scaled_array = scaler.transform(df_num[continuous_cols])
+        scaled_df = pd.DataFrame(scaled_array, columns=continuous_cols, index=df_test.index)
+    else:
+        scaled_df = pd.DataFrame(index=df_test.index)
+
+    # Remove original columns and join processed ones
+    drop_cols = set(categorical_cols + continuous_cols)
+    remaining = df_test.drop(columns=[col for col in drop_cols if col in df_test.columns], errors='ignore')
+
+    df_processed = remaining.join([encoded_df, scaled_df])
+    return df_processed
 
 def show_optuna(study):
 
@@ -8109,11 +8175,14 @@ def logistic(X, y, **kwargs):
     OPTIONAL KEYWORD ARGUMENTS
     **kwargs (optional keyword arguments):
         # general params that are user-specified
-        preprocess= True,    # True for OneHotEncoder and MinMaxScaler
-        encoder= None,            # pre-fitted OneHotEncoder
-        scaler= None,             # pre-fitted MinMaxScaler
-        categorical_cols= None,   # pre-fitted categorical columns
-        continuous_cols= None,    # pre-fitted continupus columns
+        preprocess= True,         # Apply OneHotEncoder and MinMaxScaler
+        preprocess_result= None,  # dict of the following result from 
+                                  # preprocess_train if available:         
+                                  # - encoder          (OneHotEncoder)
+                                  # - scaler           (MinMaxScaler)
+                                  # - categorical_cols (categorical cols)
+                                  # - non_numeric_cats (non-num cat cols)
+                                  # - continuous_cols  (continuous cols)
         selected_features= None,  # pre-optimized selected features
         verbose= 'on',      # display summary stats and plots
         gpu= True,          # autodetect gpu if present
@@ -8145,17 +8214,17 @@ def logistic(X, y, **kwargs):
             model_objects is the fitted model object
             model_outputs is a dictionary of the following outputs: 
                 - 'preprocess': True for OneHotEncoder and MinMaxScaler
-                - 'encoder': OneHotEncoder for categorical X
-                - 'scaler': MinMaxScaler for continuous X
-                - 'categorical_cols': categorical numerical columns 
-                                        of original X
-                - 'continous_cols': continuous numerical columns
-                                        of original X
+                - 'preprocess_result': output or echo of the following:
+                    - 'encoder': OneHotEncoder for categorical X
+                    - 'scaler': MinMaxScaler for continuous X
+                    - 'categorical_cols': categorical numerical columns 
+                    - 'non_numeric_cats': non-numeric categorical columns 
+                    - 'continous_cols': continuous numerical columns
                 - 'stats': best model goodness of fit metrics for train data
                 - 'params': core model parameters used for fitting
                 - 'extra_params': extra model paramters used for fitting
                 - 'selected_features': selected features for fitting
-                - 'X_final': final pre-processed and selected features
+                - 'X_processed': final pre-processed and selected features
                 - 'y_pred': best model predicted y
 
     NOTE
@@ -8198,10 +8267,13 @@ def logistic(X, y, **kwargs):
 
         # general params that are user-specified
         'preprocess': True,    # True for OneHotEncoder and MinMaxScaler
-        'encoder': None,                   # pre-fitted OneHotEncoder
-        'scaler': None,                    # pre-fitted MinMaxScaler
-        'categorical_cols': None,          # pre-fitted categorical columns
-        'continuous_cols': None,           # pre-fitted continupus columns
+        'preprocess_result': None,  # dict of  the following result from 
+                                    # preprocess_train if available:         
+                                    # - encoder          (OneHotEncoder) 
+                                    # - scaler           (MinMaxScaler)
+                                    # - categorical_cols (categorical columns)
+                                    # - non_numeric_cats (non-numeric cats)
+                                    # - continuous_cols  (continuous columns)
         'selected_features': None,         # pre-optimized selected features
         'verbose': 'on',
         'gpu': True,                       # autodetect gpu if present
@@ -8253,21 +8325,15 @@ def logistic(X, y, **kwargs):
     model_objects = {}
     model_outputs = {}
 
+    # Pre-process X to apply OneHotEncoder and MinMaxScaler
     if data['preprocess']:
-        if (data['encoder']!=None and data['scaler']!=None 
-            and data['categorical_cols']!=None and data['continuous_cols']!=None):
-            X = preprocess_test(X, 
-                encoder=data['encoder'],
-                scaler=data['scaler'],
-                categorical_cols=data['categorical_cols'], 
-                continuous_cols=data['continuous_cols'])
+        if data['preprocess_result']!=None:
+            X = preprocess_test(X, data['preprocess_result'])
         else:
-            X, encoder, scaler, cat_cols, num_cols = preprocess_train(
+            data['preprocess_result'] = preprocess_train(
                 X, threshold=data['threshold'])
-            model_outputs['encoder'] = encoder                     
-            model_outputs['scaler'] = scaler                     
-            model_outputs['categorical_cols'] = categorical_cols                    
-            model_outputs['continuous_cols'] = continuous_cols                         
+            X = data['preprocess_result']['df_processed']
+                                            
     if data['selected_features'] == None:
         data['selected_features'] = X.columns
     else:
@@ -8275,8 +8341,9 @@ def logistic(X, y, **kwargs):
     
     # save preprocess outputs
     model_outputs['preprocess'] = data['preprocess']   
-    model_outputs['X_final'] = X.copy()
+    model_outputs['preprocess_result'] = data['preprocess_result'] 
     model_outputs['selected_features'] = data['selected_features']
+    model_outputs['X_processed'] = X.copy()
     
     print('Fitting LogisticRegression model with best parameters, please wait ...')
 
@@ -8445,8 +8512,15 @@ def logistic_auto(X, y, **kwargs):
     OPTIONAL KEYWORD ARGUMENTS
     **kwargs (optional keyword arguments):
         # general params that are user-specified
-        n_trials= 50,       # number of optuna trials
-        preprocess= True,   # True for OneHotEncoder and MinMaxScaler
+        n_trials= 50,             # Number of optuna trials
+        preprocess= True,         # Apply OneHotEncoder and MinMaxScaler
+        preprocess_result= None,  # dict of the following result from 
+                                  # preprocess_train if available:         
+                                  # - encoder          (OneHotEncoder)
+                                  # - scaler           (MinMaxScaler)
+                                  # - categorical_cols (categorical cols)
+                                  # - non_numeric_cats (non-num cat cols)
+                                  # - continuous_cols  (continuous cols)
         verbose= 'on',      # display summary stats and plots
         gpu= True,          # autodetect gpu if present
         n_splits= 5,        # number of splits for KFold CV
@@ -8457,16 +8531,16 @@ def logistic_auto(X, y, **kwargs):
                             # to encode with OneHotEncoder
          
         # [min,max] model params that are optimized by optuna
-        C= [1e-4, 10.0],                  # Inverse regularization strength
+        C= [1e-4, 10.0],    # Inverse regularization strength
 
         # categorical model params that are optimized by optuna
         solver= ['liblinear', 'lbfgs', 'saga'],   # optimization algorithm
         penalty= ['l1', 'l2],                     # norm of the penalty
         
         # model extra_params that are optional user-specified
-        random_state= 42,                 # random seed for reproducibility
-        max_iter= 500,                    # max iterations for solver
-        n_jobs= -1,                       # number of jobs to run in parallel    
+        random_state= 42,   # random seed for reproducibility
+        max_iter= 500,      # max iterations for solver
+        n_jobs= -1,         # number of jobs to run in parallel    
 
     Note: MinMaxScaler standardizing of continuous numerical features 
     and OneHoteEncoder encoding of categorical numerical features is optional
@@ -8477,12 +8551,12 @@ def logistic_auto(X, y, **kwargs):
             model_objects is the fitted model object
             model_outputs is a dictionary of the following outputs: 
                 - 'preprocess': True for OneHotEncoder and MinMaxScaler
-                - 'encoder': OneHotEncoder for categorical X
-                - 'scaler': MinMaxScaler for continuous X
-                - 'categorical_cols': categorical numerical columns 
-                                        of original X
-                - 'continous_cols': continuous numerical columns
-                                        of original X
+                - 'preprocess_result': output or echo of the following:
+                    - 'encoder': OneHotEncoder for categorical X
+                    - 'scaler': MinMaxScaler for continuous X
+                    - 'categorical_cols': categorical numerical columns 
+                    - 'non_numeric_cats': non-numeric categorical columns 
+                    - 'continous_cols': continuous numerical columns
                 - 'optuna_study': optimzed optuna study object
                 - 'optuna_model': optimzed optuna model object
                 - 'best_trial': best trial from the optuna study
@@ -8491,6 +8565,7 @@ def logistic_auto(X, y, **kwargs):
                 - 'best_params': best model hyper-parameters found by optuna
                 - 'extra_params': other model options used to fit the model
                 - 'stats': best model goodness of fit metrics for train data
+                - 'X_processed': pre-processed X with encoding and scaling
                 - 'y_pred': best model predicted y
 
     NOTE
@@ -8532,16 +8607,23 @@ def logistic_auto(X, y, **kwargs):
     defaults = {
 
         # general params that are user-specified
-        'n_trials': 50,                     # number of optuna trials
-        'preprocess': True,                 # encode and standardize X
+        'n_trials': 50,             # Number of optuna trials
+        'preprocess': True,         # Apply OneHotEncoder and MinMaxScaler
+        'preprocess_result': None,  # dict of  the following result from 
+                                    # preprocess_train if available:         
+                                    # - encoder          (OneHotEncoder) 
+                                    # - scaler           (MinMaxScaler)
+                                    # - categorical_cols (categorical columns)
+                                    # - non_numeric_cats (non-numeric cats)
+                                    # - continuous_cols  (continuous columns)
         'verbose': 'on',
-        'gpu': True,                        # Autodetect to use gpu if present
-        'n_splits': 5,                      # number of splits for KFold CV
-        'pruning': False,                   # prune poor optuna trials
-        'feature_selection': True,          # optuna feature selection
-        'threshold': 10,                    # threshold for number of 
-                                            # unique values for 
-                                            # categorical numeric features
+        'gpu': True,                # Autodetect to use gpu if present
+        'n_splits': 5,              # number of splits for KFold CV
+        'pruning': False,           # prune poor optuna trials
+        'feature_selection': True,  # optuna feature selection
+        'threshold': 10,            # threshold for number of 
+                                    # unique values for 
+                                    # categorical numeric features
         
         # [min,max] model params that are optimized by optuna
         'C': [1e-4, 10.0],                  # Inverse regularization strength
@@ -8587,14 +8669,15 @@ def logistic_auto(X, y, **kwargs):
     model_objects = {}
     model_outputs = {}
 
+    # Pre-process X to apply OneHotEncoder and MinMaxScaler
     if data['preprocess']:
-        X, encoder, scaler, cat_cols, num_cols = preprocess_train(
-            X, threshold=data['threshold'])
-    else:
-        encoder= None
-        scaler= None
-        cat_cols= None
-        num_cols= None
+        if data['preprocess_result']!=None:
+            X = preprocess_test(X, data['preprocess_result'])
+        else:
+            data['preprocess_result'] = preprocess_train(
+                X, threshold=data['threshold'])
+            X = data['preprocess_result']['df_processed']
+
     data['feature_names'] = X.columns
     # print('after preprocess_train: ',X.shape, y.shape,X.columns)
     
@@ -8618,18 +8701,15 @@ def logistic_auto(X, y, **kwargs):
             direction="maximize", 
             sampler=optuna.samplers.TPESampler(seed=data['random_state'], multivariate=True))
     
-    X_opt = X.copy()
+    X_opt = X.copy()    # copy X to prevent altering the original
     study.optimize(
         lambda trial: logistic_objective(trial, X_opt, y, **data), 
         n_trials=data['n_trials'])
 
     # save outputs
     model_outputs['preprocess'] = data['preprocess']   
-    model_outputs['encoder'] = encoder                     
-    model_outputs['scaler'] = scaler                     
-    model_outputs['categorical_cols'] = cat_cols                     
-    model_outputs['continuous_cols'] = num_cols                     
-    model_outputs['X_opt'] = X
+    model_outputs['preprocess_result'] = data['preprocess_result'] 
+    model_outputs['X_processed'] = X.copy()
     model_outputs['pruning'] = data['pruning']
     model_outputs['optuna_study'] = study
     model_outputs['best_trial'] = study.best_trial
