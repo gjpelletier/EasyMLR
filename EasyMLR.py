@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.79"
+__version__ = "1.1.80"
 
 def check_X_y(X,y):
 
@@ -8032,6 +8032,58 @@ def plot_roc_auc(model, X, y):
 
     return hfig
 
+def plot_logistic_results_test(model, X, y, 
+    encoder=None, 
+    scaler=None, 
+    categorical_cols=None,
+    continuous_cols=None,
+    selected_features=None):
+    '''
+    plot the confusion matrix and ROC curve and fitness metrics
+    for test data sets for LogisticRegression
+    using the model, encoder, scaler, 
+    categorical_cols, continuous_cols, and selected_features
+    from the fitted model using training data
+    previously saved by using logistic_auto
+    '''
 
+    import numpy as np
+    import pandas as pd
+    from EasyMLR import (preprocess_test, plot_confusion_matrix, 
+        plot_roc_auc, extract_logistic_metrics)
+    
+    if selected_features==None:
+        selected_features = X.columns
+
+    if (encoder!=None and scaler!=None 
+        and categorical_cols!=None and continuous_cols!=None):
+        # print('preprocessing')
+        X = X.copy()
+        X = preprocess_test(X, encoder, scaler, categorical_cols, continuous_cols)
+
+    # Goodness of fit statistics
+    metrics = extract_logistic_metrics(
+        model, 
+        X[selected_features], y)
+    stats = pd.DataFrame([metrics]).T
+    stats.index.name = 'Statistic'
+    stats.columns = ['LogisticRegression']
+    results = {}
+    results['stats'] = stats
+    print('')
+    print("LogisticRegression goodness of fit to testing data in results['stats']:")
+    print('')
+    print(results['stats'].to_markdown(index=True))
+    print('')
+        
+    hfig_cm = plot_confusion_matrix(model, X[selected_features],y)    
+    hfig_cm.savefig("LogisticRegression_confusion_matrix_test.png", dpi=300)
+    results['hfig_cm'] = hfig_cm
+    
+    hfig_roc = plot_roc_auc(model, X[selected_features],y)    
+    hfig_roc.savefig("LogisticRegression_ROC_curve_test.png", dpi=300)
+    results['hfig_roc'] = hfig_roc
+    
+    return results
 
 
