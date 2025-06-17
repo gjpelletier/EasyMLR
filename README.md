@@ -167,6 +167,7 @@ pip install git+https://github.com/gjpelletier/EasyMLR.git --upgrade
 
 Next import the main functions from the EasyMLR module as needed using the following code in your notebook or python code:<br>
 ```
+from EasyMLR import logistic, logistic_auto
 from EasyMLR import lasso, ridge, elastic
 from EasyMLR import xgb, xgb_auto
 from EasyMLR import catboost, catboost_auto,
