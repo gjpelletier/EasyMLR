@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.92"
+__version__ = "1.1.93"
 
 def check_X_y(X,y):
 
@@ -103,6 +103,7 @@ def preprocess_train(df, threshold=10, scale='standard'):
     """
     Detects categorical (numeric and non-numeric) columns, applies one-hot encoding,
     scales continuous numeric columns, and safely handles cases with missing types.
+    All categorical features are cast to float.
 
     Args:
         df (pd.DataFrame): Training data
@@ -126,45 +127,44 @@ def preprocess_train(df, threshold=10, scale='standard'):
     # Start with a copy to avoid changing the original df
     df = df.copy()
     
-    # Identify numeric and non-numeric columns
-    numerical_cols = df.select_dtypes(include=['number']).columns.tolist()
+    bool_cols = df.select_dtypes(include='bool').columns.tolist()
+    df[bool_cols] = df[bool_cols].astype(int)
+
+    numerical_cols = df.select_dtypes(include='number').columns.tolist()
     non_numeric_cats = df.select_dtypes(include=['object', 'category']).columns.tolist()
 
-    # Detect categorical numeric columns
-    categorical_numeric = [col for col in numerical_cols if df[col].nunique() <= threshold]
-    continuous_cols = [col for col in numerical_cols if col not in categorical_numeric]
+    categorical_numeric = [col for col in numerical_cols if df[col].nunique() <= threshold and col not in bool_cols]
+    continuous_cols = [col for col in numerical_cols if col not in categorical_numeric and col not in bool_cols]
 
-    # Combine all categorical columns
-    all_cat_cols = categorical_numeric + non_numeric_cats
+    all_cat_cols = categorical_numeric + non_numeric_cats + bool_cols
 
-    # One-hot encode if applicable
+    # One-hot encoding
     if all_cat_cols:
         encoder = OneHotEncoder(handle_unknown='ignore', sparse_output=False)
         encoded_array = encoder.fit_transform(df[all_cat_cols])
         encoded_df = pd.DataFrame(encoded_array,
                                   columns=encoder.get_feature_names_out(all_cat_cols),
-                                  index=df.index)
+                                  index=df.index).astype(float)
         category_mappings = {
             col: encoder.categories_[i].tolist()
             for i, col in enumerate(all_cat_cols)
         }
     else:
-        encoder = None
-        encoded_df = pd.DataFrame(index=df.index)
-        category_mappings = {}
+        encoder, encoded_df, category_mappings = None, pd.DataFrame(index=df.index), {}
 
-    # Scale numeric continuous features if applicable
+    # Scaling
     if continuous_cols:
         scaler = MinMaxScaler() if scale == 'minmax' else StandardScaler()
         scaled_array = scaler.fit_transform(df[continuous_cols])
-        scaled_df = pd.DataFrame(scaled_array, columns=continuous_cols, index=df.index)
+        scaled_df = pd.DataFrame(scaled_array, columns=continuous_cols, index=df.index).astype(float)
     else:
-        scaler = None
-        scaled_df = pd.DataFrame(index=df.index)
+        scaler, scaled_df = None, pd.DataFrame(index=df.index)
 
-    # Combine final output
-    remaining_cols = df.drop(columns=all_cat_cols + continuous_cols, errors='ignore')
-    df_processed = remaining_cols.join([encoded_df, scaled_df])
+    # Merge all transformed features
+    drop_cols = all_cat_cols + continuous_cols
+    df_processed = df.drop(columns=drop_cols, errors='ignore')
+    df_processed = df_processed.join([encoded_df, scaled_df])
+    df_processed = df_processed.astype(float)
 
     return {
         'df_processed': df_processed,
@@ -191,54 +191,49 @@ def preprocess_test(df_test, preprocess_results):
     import pandas as pd
     import numpy as np
 
+
     encoder = preprocess_results['encoder']
     scaler = preprocess_results['scaler']
     categorical_cols = preprocess_results['categorical_cols']
     continuous_cols = preprocess_results['continuous_cols']
 
-    # Copy test set to avoid mutation
     df_test = df_test.copy()
 
-    # --- Encode categorical columns ---
+    for col in categorical_cols:
+        if df_test.get(col, pd.Series(dtype=object)).dtype == bool:
+            df_test[col] = df_test[col].astype(int)
+
+    # Encode categoricals
     if encoder is not None and categorical_cols:
         df_cat = pd.DataFrame(index=df_test.index)
-
         for col in categorical_cols:
-            if col in df_test.columns:
-                df_cat[col] = df_test[col]
-            else:
-                # Column missing in test set → fill with NaN for alignment
-                df_cat[col] = np.nan
+            df_cat[col] = df_test[col] if col in df_test.columns else np.nan
 
         encoded_array = encoder.transform(df_cat[categorical_cols])
         encoded_df = pd.DataFrame(
             encoded_array,
             columns=encoder.get_feature_names_out(categorical_cols),
             index=df_test.index
-        )
+        ).astype(float)
     else:
         encoded_df = pd.DataFrame(index=df_test.index)
 
-    # --- Scale continuous numeric columns ---
+    # Scale continuous
     if scaler is not None and continuous_cols:
         df_num = pd.DataFrame(index=df_test.index)
-
         for col in continuous_cols:
-            if col in df_test.columns:
-                df_num[col] = df_test[col]
-            else:
-                df_num[col] = 0.0  # Safe fallback value
+            df_num[col] = df_test[col] if col in df_test.columns else 0.0
 
         scaled_array = scaler.transform(df_num[continuous_cols])
-        scaled_df = pd.DataFrame(scaled_array, columns=continuous_cols, index=df_test.index)
+        scaled_df = pd.DataFrame(scaled_array, columns=continuous_cols, index=df_test.index).astype(float)
     else:
         scaled_df = pd.DataFrame(index=df_test.index)
 
-    # --- Combine everything ---
     drop_cols = set(categorical_cols + continuous_cols)
     remaining = df_test.drop(columns=[col for col in drop_cols if col in df_test.columns], errors='ignore')
 
     df_processed = remaining.join([encoded_df, scaled_df])
+    df_processed = df_processed.astype(float)
 
     return df_processed
 
