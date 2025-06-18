@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.94"
+__version__ = "1.1.96"
 
 def check_X_y(X,y):
 
@@ -8417,89 +8417,73 @@ def logistic(X, y, **kwargs):
 
 def logistic_objective(trial, X, y, **kwargs):
     '''
-    Objective function used by optuna 
-    to find the optimum hyper-parameters for 
-    sklearn KNeighborsRegressor
+    Objective function used by Optuna to optimize 
+    hyperparameters for sklearn LogisticRegression
+    with optional pipeline-integrated SelectKBest feature selection.
     '''
     import numpy as np
     import pandas as pd
-    from sklearn.model_selection import cross_val_score, KFold, StratifiedKFold
-    from sklearn.feature_selection import SelectKBest, mutual_info_regression
-    # from sklearn.decomposition import PCA
-    from sklearn.metrics import accuracy_score
-    from sklearn.model_selection import train_test_split
+    from sklearn.model_selection import StratifiedKFold, cross_val_score
     from sklearn.linear_model import LogisticRegression
-    from sklearn.feature_selection import SelectKBest, chi2
-    import optuna
-    
-    # Set global random seed
-    np.random.seed(kwargs['random_state'])
+    from sklearn.feature_selection import SelectKBest, mutual_info_classif
+    from sklearn.pipeline import make_pipeline
 
-    # Feature Selection: Optimize number of features before PCA
-    if kwargs['feature_selection']:
-        num_features = trial.suggest_int("num_features", 
-            max(5, X.shape[1] // 10), 
-            X.shape[1]) 
-        selector = SelectKBest(mutual_info_regression, k=num_features)
-        # X_selected = selector.fit_transform(X, y)
-        X_sel = selector.fit_transform(X, y)
-        # Get indices of selected features
-        selected_indices = selector.get_support(indices=True)
-        # Get names of selected features
-        # feature_names = [f"Feature_{i}" for i in range(X.shape[1])]  # Assign names to features
-        feature_names = kwargs['feature_names']
-        selected_features = np.array(feature_names)[selected_indices].tolist()
-        # print('selected_features: ',selected_features)
-        X_sel = pd.DataFrame(X_sel)
-        X_sel.columns = selected_features
-        X_sel.index = X.index
-        X = X_sel
-        # print('X.columns: ',X.shape, X.columns)
-    else:
-        selected_features = kwargs['feature_names']
+    # Set random seed for reproducibility
+    seed = kwargs.get('random_state', 42)
+    np.random.seed(seed)
 
+    # Hyperparameter search space
     params = {
-        # C = trial.suggest_loguniform('C', 1e-4, 10)  # Regularization strength
-        "C": trial.suggest_float("C",
-            kwargs["C"][0], kwargs["C"][1], log=True),
-        'solver': trial.suggest_categorical('solver', 
-            kwargs['solver']),
+        "C": trial.suggest_float("C", kwargs["C"][0], kwargs["C"][1], log=True),
+        "solver": trial.suggest_categorical("solver", kwargs["solver"]),
     }
 
-    params['penalty']= trial.suggest_categorical('penalty', 
-            kwargs['penalty']) if params['solver'] in ['liblinear', 'saga'] else 'l2'
-    
+    # Only relevant penalties based on solver
+    params["penalty"] = trial.suggest_categorical(
+        "penalty", kwargs["penalty"]) if params["solver"] in ['liblinear', 'saga'] else 'l2'
+
     extra_params = {
-        'random_state': kwargs['random_state'],
+        'random_state': seed,
         'max_iter': kwargs['max_iter'],
         'n_jobs': kwargs['n_jobs'],
         'verbose': 0
     }
-        
-    # Define model
-    model = LogisticRegression(**params, **extra_params) 
 
-    # cross-validation
-    cv = StratifiedKFold(
-        n_splits=kwargs['n_splits'], 
-        shuffle=True, 
-        random_state=kwargs['random_state'])
-    score = cross_val_score(
-        model, X[selected_features], y, cv=cv, scoring="accuracy")    
-    # score = cross_val_score(
-    #     model, X[selected_indices], y, cv=cv, scoring="accuracy")    
+    # Optional feature selection
+    if kwargs.get("feature_selection", True):
+        num_features = trial.suggest_int(
+            "num_features", max(5, X.shape[1] // 10), X.shape[1])
+        selector = SelectKBest(
+            lambda X_, y_: mutual_info_classif(X_, y_, random_state=seed),
+            k=num_features
+        )
+        pipeline = make_pipeline(selector, LogisticRegression(**params, **extra_params))
+    else:
+        pipeline = make_pipeline(LogisticRegression(**params, **extra_params))
+        num_features = None  # Will track in case we want to log it
 
-    accuracy = np.mean(score)
+    # Stratified cross-validation
+    cv = StratifiedKFold(n_splits=kwargs['n_splits'], shuffle=True, random_state=seed)
+    scores = cross_val_score(pipeline, X, y, cv=cv, scoring="accuracy")
+    accuracy = scores.mean()
 
-    model.fit(X[selected_features], y)
+    # Optional full pipeline fit to log selected features
+    pipeline.fit(X, y)
 
-    trial.set_user_attr("model", model)
+    if kwargs.get("feature_selection", True):
+        selector_step = pipeline.named_steps['selectkbest']
+        selected_indices = selector_step.get_support(indices=True)
+        selected_features = np.array(kwargs["feature_names"])[selected_indices].tolist()
+    else:
+        selected_features = kwargs["feature_names"]
+
+    # Save outputs to trial
     trial.set_user_attr("accuracy", accuracy)
     trial.set_user_attr("selected_features", selected_features)
-    # trial.set_user_attr("selected_indices", selected_indices)
-    
+    trial.set_user_attr("model", pipeline)
+
     return accuracy
-   
+  
 def logistic_auto(X, y, **kwargs):
 
     """
