@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.88"
+__version__ = "1.1.89"
 
 def check_X_y(X,y):
 
@@ -99,7 +99,7 @@ def check_X_y(X,y):
 
     return X, y
 
-def preprocess_train(df, threshold=10, scale='minmax'):
+def preprocess_train(df, threshold=10, scale='standard'):
     """
     Detects categorical (numeric and non-numeric) columns, applies one-hot encoding,
     scales continuous numeric columns, and safely handles cases with missing types.
@@ -178,12 +178,12 @@ def preprocess_train(df, threshold=10, scale='minmax'):
 
 def preprocess_test(df_test, preprocess_results):
     """
-    Transforms the test DataFrame using the encoder, scaler, and column structure
-    from preprocess_train. Handles missing column types safely.
+    Transforms the test DataFrame using artifacts from preprocess_train.
+    Handles missing columns and unknown categories safely.
 
     Args:
         df_test (pd.DataFrame): Input test DataFrame
-        preprocess_results (dict): Output from preprocess_train
+        preprocess_results (dict): Output dictionary from preprocess_train
 
     Returns:
         pd.DataFrame: Preprocessed test DataFrame
@@ -194,20 +194,20 @@ def preprocess_test(df_test, preprocess_results):
     encoder = preprocess_results['encoder']
     scaler = preprocess_results['scaler']
     categorical_cols = preprocess_results['categorical_cols']
-    non_numeric_cats = preprocess_results['non_numeric_cats']
     continuous_cols = preprocess_results['continuous_cols']
 
-    # Start with a copy to avoid changing the original test set
+    # Copy test set to avoid mutation
     df_test = df_test.copy()
 
-    # Handle categorical encoding
+    # --- Encode categorical columns ---
     if encoder is not None and categorical_cols:
-        cat_cols_present = [col for col in categorical_cols if col in df_test.columns]
-        df_cat = df_test[cat_cols_present].copy()
+        df_cat = pd.DataFrame(index=df_test.index)
 
-        # Add missing columns (required by encoder) as NaN
         for col in categorical_cols:
-            if col not in df_cat.columns:
+            if col in df_test.columns:
+                df_cat[col] = df_test[col]
+            else:
+                # Column missing in test set → fill with NaN for alignment
                 df_cat[col] = np.nan
 
         encoded_array = encoder.transform(df_cat[categorical_cols])
@@ -219,27 +219,29 @@ def preprocess_test(df_test, preprocess_results):
     else:
         encoded_df = pd.DataFrame(index=df_test.index)
 
-    # Handle numeric scaling
+    # --- Scale continuous numeric columns ---
     if scaler is not None and continuous_cols:
-        num_cols_present = [col for col in continuous_cols if col in df_test.columns]
-        df_num = df_test[num_cols_present].copy()
+        df_num = pd.DataFrame(index=df_test.index)
 
-        # Add missing continuous columns as zero (minmax-safe)
         for col in continuous_cols:
-            if col not in df_num.columns:
-                df_num[col] = 0.0
+            if col in df_test.columns:
+                df_num[col] = df_test[col]
+            else:
+                df_num[col] = 0.0  # Safe fallback value
 
         scaled_array = scaler.transform(df_num[continuous_cols])
         scaled_df = pd.DataFrame(scaled_array, columns=continuous_cols, index=df_test.index)
     else:
         scaled_df = pd.DataFrame(index=df_test.index)
 
-    # Remove original columns and join processed ones
+    # --- Combine everything ---
     drop_cols = set(categorical_cols + continuous_cols)
     remaining = df_test.drop(columns=[col for col in drop_cols if col in df_test.columns], errors='ignore')
 
     df_processed = remaining.join([encoded_df, scaled_df])
+
     return df_processed
+
 
 def show_optuna(study):
 
@@ -8146,6 +8148,8 @@ def plot_logistic_results_test(
     hfig_roc = plot_roc_auc(model, X[selected_features],y)    
     hfig_roc.savefig("LogisticRegression_ROC_curve_test.png", dpi=300)
     results['hfig_roc'] = hfig_roc
+
+    results['y_pred'] = model.predict(X[selected_features])
     
     return results
 
