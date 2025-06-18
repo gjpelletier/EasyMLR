@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.93"
+__version__ = "1.1.94"
 
 def check_X_y(X,y):
 
@@ -8071,7 +8071,7 @@ def plot_roc_auc(model, X, y):
         fpr, tpr, _ = roc_curve(y_bin.ravel(), y_score[:, 1])
         roc_auc = auc(fpr, tpr)
         plt.plot(fpr, tpr, color='darkorange', lw=2, 
-                 label=f"ROC curve (AUC = {roc_auc:.2f})")
+                 label=f"ROC curve (AUC = {roc_auc:.3f})")
     else:
         # Multiclass case - one ROC curve per class
         colors = cycle(['blue', 'red', 'green', 'purple', 'orange', 'cyan'])
