@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.96"
+__version__ = "1.1.97"
 
 def check_X_y(X,y):
 
@@ -237,7 +237,6 @@ def preprocess_test(df_test, preprocess_results):
 
     return df_processed
 
-
 def show_optuna(study):
 
     '''
@@ -266,7 +265,9 @@ def show_optuna(study):
 
     # name of model object in the study
     model_name = type(study.best_trial.user_attrs['model']).__name__
-    
+    if model_name == 'Pipeline':
+        model_name = study.best_trial.user_attrs['model'].steps[-1][1].__class__.__name__
+ 
     # Generate optimization history plot
     optuna.visualization.matplotlib.plot_optimization_history(study)
     plt.title("Optimization History")
