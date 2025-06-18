@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.89"
+__version__ = "1.1.90"
 
 def check_X_y(X,y):
 
@@ -8173,11 +8173,11 @@ def logistic(X, y, **kwargs):
     OPTIONAL KEYWORD ARGUMENTS
     **kwargs (optional keyword arguments):
         # general params that are user-specified
-        preprocess= True,         # Apply OneHotEncoder and MinMaxScaler
+        preprocess= True,         # Apply OneHotEncoder and StandardScaler
         preprocess_result= None,  # dict of the following result from 
                                   # preprocess_train if available:         
                                   # - encoder          (OneHotEncoder)
-                                  # - scaler           (MinMaxScaler)
+                                  # - scaler           (StandardScaler)
                                   # - categorical_cols (categorical cols)
                                   # - non_numeric_cats (non-num cat cols)
                                   # - continuous_cols  (continuous cols)
@@ -8201,7 +8201,7 @@ def logistic(X, y, **kwargs):
         max_iter= 500,      # max iterations for solver
         n_jobs= -1,         # number of jobs to run in parallel    
 
-    Note: MinMaxScaler standardizing of continuous numerical features 
+    Note: StandardScaler standardizing of continuous numerical features 
     and OneHoteEncoder encoding of categorical numerical features is optional
     and is applied by default with kwarg preprocess=True.
     If fitted encoder, scaler, categorical_cols, and continuous_cols
@@ -8211,10 +8211,10 @@ def logistic(X, y, **kwargs):
         fitted_model, model_outputs
             model_objects is the fitted model object
             model_outputs is a dictionary of the following outputs: 
-                - 'preprocess': True for OneHotEncoder and MinMaxScaler
+                - 'preprocess': True for OneHotEncoder and StandardScaler
                 - 'preprocess_result': output or echo of the following:
                     - 'encoder': OneHotEncoder for categorical X
-                    - 'scaler': MinMaxScaler for continuous X
+                    - 'scaler': StandardScaler for continuous X
                     - 'categorical_cols': categorical numerical columns 
                     - 'non_numeric_cats': non-numeric categorical columns 
                     - 'continous_cols': continuous numerical columns
@@ -8264,11 +8264,11 @@ def logistic(X, y, **kwargs):
     defaults = {
 
         # general params that are user-specified
-        'preprocess': True,    # True for OneHotEncoder and MinMaxScaler
+        'preprocess': True,    # True for OneHotEncoder and StandardScaler
         'preprocess_result': None,  # dict of  the following result from 
                                     # preprocess_train if available:         
                                     # - encoder          (OneHotEncoder) 
-                                    # - scaler           (MinMaxScaler)
+                                    # - scaler           (StandardScaler)
                                     # - categorical_cols (categorical columns)
                                     # - non_numeric_cats (non-numeric cats)
                                     # - continuous_cols  (continuous columns)
@@ -8323,7 +8323,7 @@ def logistic(X, y, **kwargs):
     model_objects = {}
     model_outputs = {}
 
-    # Pre-process X to apply OneHotEncoder and MinMaxScaler
+    # Pre-process X to apply OneHotEncoder and StandardScaler
     if data['preprocess']:
         if data['preprocess_result']!=None:
             X = preprocess_test(X, data['preprocess_result'])
@@ -8511,11 +8511,11 @@ def logistic_auto(X, y, **kwargs):
     **kwargs (optional keyword arguments):
         # general params that are user-specified
         n_trials= 50,             # Number of optuna trials
-        preprocess= True,         # Apply OneHotEncoder and MinMaxScaler
+        preprocess= True,         # Apply OneHotEncoder and StandardScaler
         preprocess_result= None,  # dict of the following result from 
                                   # preprocess_train if available:         
                                   # - encoder          (OneHotEncoder)
-                                  # - scaler           (MinMaxScaler)
+                                  # - scaler           (StandardScaler)
                                   # - categorical_cols (categorical cols)
                                   # - non_numeric_cats (non-num cat cols)
                                   # - continuous_cols  (continuous cols)
@@ -8540,7 +8540,7 @@ def logistic_auto(X, y, **kwargs):
         max_iter= 500,      # max iterations for solver
         n_jobs= -1,         # number of jobs to run in parallel    
 
-    Note: MinMaxScaler standardizing of continuous numerical features 
+    Note: StandardScaler standardizing of continuous numerical features 
     and OneHoteEncoder encoding of categorical numerical features is optional
     and is applied by default with kwarg preprocess=True
 
@@ -8548,10 +8548,10 @@ def logistic_auto(X, y, **kwargs):
         fitted_model, model_outputs
             model_objects is the fitted model object
             model_outputs is a dictionary of the following outputs: 
-                - 'preprocess': True for OneHotEncoder and MinMaxScaler
+                - 'preprocess': True for OneHotEncoder and StandardScaler
                 - 'preprocess_result': output or echo of the following:
                     - 'encoder': OneHotEncoder for categorical X
-                    - 'scaler': MinMaxScaler for continuous X
+                    - 'scaler': StandardScaler for continuous X
                     - 'categorical_cols': categorical numerical columns 
                     - 'non_numeric_cats': non-numeric categorical columns 
                     - 'continous_cols': continuous numerical columns
@@ -8606,11 +8606,11 @@ def logistic_auto(X, y, **kwargs):
 
         # general params that are user-specified
         'n_trials': 50,             # Number of optuna trials
-        'preprocess': True,         # Apply OneHotEncoder and MinMaxScaler
+        'preprocess': True,         # Apply OneHotEncoder and StandardScaler
         'preprocess_result': None,  # dict of  the following result from 
                                     # preprocess_train if available:         
                                     # - encoder          (OneHotEncoder) 
-                                    # - scaler           (MinMaxScaler)
+                                    # - scaler           (StandardScaler)
                                     # - categorical_cols (categorical columns)
                                     # - non_numeric_cats (non-numeric cats)
                                     # - continuous_cols  (continuous columns)
@@ -8667,7 +8667,7 @@ def logistic_auto(X, y, **kwargs):
     model_objects = {}
     model_outputs = {}
 
-    # Pre-process X to apply OneHotEncoder and MinMaxScaler
+    # Pre-process X to apply OneHotEncoder and StandardScaler
     if data['preprocess']:
         if data['preprocess_result']!=None:
             X = preprocess_test(X, data['preprocess_result'])
