@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.91"
+__version__ = "1.1.92"
 
 def check_X_y(X,y):
 
@@ -384,6 +384,7 @@ def plot_predictions_from_test(
         fig= figure for the plot
     """
  
+    from EasyMLR import check_X_y
     import pandas as pd
     import numpy as np
     from sklearn.metrics import PredictionErrorDisplay
@@ -392,6 +393,13 @@ def plot_predictions_from_test(
     import matplotlib.pyplot as plt
     import warnings
     import sys
+
+    # copy X and y to avoid altering originals
+    X = X.copy()
+    y = y.copy()
+
+    # check X and y and put into dataframe if needed
+    X, y = check_X_y(X, y)
     
     if standardize and scaler == None:
         # create a new scaler 
@@ -8117,7 +8125,7 @@ def plot_logistic_results_test(
     import numpy as np
     import pandas as pd
     from EasyMLR import (preprocess_test, plot_confusion_matrix, 
-        plot_roc_auc, extract_logistic_metrics)
+        plot_roc_auc, extract_logistic_metrics, check_X_y)
 
     # copy X and y to avoid altering originals
     X = X.copy()
