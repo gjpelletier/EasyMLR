@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.90"
+__version__ = "1.1.91"
 
 def check_X_y(X,y):
 
@@ -8118,6 +8118,13 @@ def plot_logistic_results_test(
     import pandas as pd
     from EasyMLR import (preprocess_test, plot_confusion_matrix, 
         plot_roc_auc, extract_logistic_metrics)
+
+    # copy X and y to avoid altering originals
+    X = X.copy()
+    y = y.copy()
+
+    # check X and y and put into dataframe if needed
+    X, y = check_X_y(X, y)
     
     if selected_features==None:
         selected_features = X.columns
