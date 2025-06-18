@@ -219,24 +219,24 @@ LogisticRegression goodness of fit to training data in model_outputs['stats']:
 
 | Statistic          |   LogisticRegression |
 |:-------------------|---------------------:|
-| mcfadden_pseudo_r2 |            0.978101  |
-| accuracy           |            0.996661  |
-| f1_score           |            0.996639  |
-| precision          |            0.996643  |
-| recall             |            0.996647  |
-| log_loss           |            0.0504213 |
+| mcfadden_pseudo_r2 |            0.971809  |
+| accuracy           |            0.994435  |
+| f1_score           |            0.994415  |
+| precision          |            0.994468  |
+| recall             |            0.994386  |
+| log_loss           |            0.0649097 |
 | n_classes          |           10         |
 | n_samples          |         1797         |
 
 
-Best-fit accuracy of CV test data: 0.9716
+Best-fit accuracy of CV test data: 0.9722
 
 Done
-Time elapsed: 162.49 sec
+Time elapsed: 120.75 sec
 ```
 
-![LogisticRegression_confusion_matrix](https://github.com/user-attachments/assets/cf3f4b2b-d6c7-4f35-b602-f720ff69df65)
-![LogisticRegression_ROC_curve](https://github.com/user-attachments/assets/5a516a69-db44-4550-8248-fa3528fc514d)
+![LogisticRegression_confusion_matrix](https://github.com/user-attachments/assets/7688dcc5-6949-403e-bcdb-13e5bfd4b13a)
+![LogisticRegression_ROC_curve](https://github.com/user-attachments/assets/defee605-e62a-4882-8665-fed1cc38cc1f)
 
 
 ---
