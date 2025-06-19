@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.106"
+__version__ = "1.1.107"
 
 def check_X_y(X,y):
 
@@ -8573,7 +8573,8 @@ def logistic(X, y, **kwargs):
                     - 'categorical_cols': categorical numerical columns 
                     - 'non_numeric_cats': non-numeric categorical columns 
                     - 'continous_cols': continuous numerical columns
-                - 'stats': best model goodness of fit metrics for train data
+                - 'metrics': dict of goodness of fit metrics for train data
+                - 'stats': dataframe of goodness of fit metrics for train data
                 - 'params': core model parameters used for fitting
                 - 'extra_params': extra model paramters used for fitting
                 - 'selected_features': selected features for fitting
@@ -8691,17 +8692,17 @@ def logistic(X, y, **kwargs):
                 X, threshold=data['threshold'])
             X = data['preprocess_result']['df_processed']
 
+    if data['selected_features'] == None:
+        data['selected_features'] = X.columns
+    else:
+        X = X[data['selected_features']]
+
     # save preprocess outputs
     model_outputs['preprocess'] = data['preprocess']   
     model_outputs['preprocess_result'] = data['preprocess_result'] 
     model_outputs['selected_features'] = data['selected_features']
     model_outputs['X_processed'] = X.copy()
-                                            
-    if data['selected_features'] == None:
-        data['selected_features'] = X.columns
-    else:
-        X = X[data['selected_features']]
-        
+                                                    
     print('Fitting LogisticRegression model with best parameters, please wait ...')
 
     params = {
@@ -8742,6 +8743,7 @@ def logistic(X, y, **kwargs):
     stats = pd.DataFrame([metrics]).T
     stats.index.name = 'Statistic'
     stats.columns = ['LogisticRegression']
+    model_outputs['metrics'] = metrics
     model_outputs['stats'] = stats
     model_outputs['y_pred'] = fitted_model.predict(X[model_outputs['selected_features']])
 
@@ -8906,7 +8908,8 @@ def logistic_auto(X, y, **kwargs):
                 - 'selected_features' = selected features
                 - 'best_params': best model hyper-parameters found by optuna
                 - 'extra_params': other model options used to fit the model
-                - 'stats': best model goodness of fit metrics for train data
+                - 'metrics': dict of goodness of fit metrics for train data
+                - 'stats': dataframe of goodness of fit metrics for train data
                 - 'X_processed': pre-processed X with encoding and scaling
                 - 'y_pred': best model predicted y
 
@@ -9099,6 +9102,7 @@ def logistic_auto(X, y, **kwargs):
     stats = pd.DataFrame([metrics]).T
     stats.index.name = 'Statistic'
     stats.columns = ['LogisticRegression']
+    model_outputs['metrics'] = metrics
     model_outputs['stats'] = stats
     model_outputs['y_pred'] = fitted_model.predict(X[model_outputs['selected_features']])
 
