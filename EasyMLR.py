@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.101"
+__version__ = "1.1.102"
 
 def check_X_y(X,y):
 
@@ -519,6 +519,132 @@ def plot_predictions_from_test(
 
     return fig
      
+def extract_linear_metrics(model, X, y):
+    '''
+    Extracts multiple evaluation metrics 
+    from a trained scikit-learn linear regression model
+    given fitted model, X, and y
+
+    Parameters:
+        model: A fitted sklearn linear regression model object
+        X: Features used to fit the model
+        y: Response variable used to fit the model
+    
+    Returns:
+        dict of relevant sklearn metrics
+    '''
+    
+    from sklearn.metrics import (
+        r2_score,
+        mean_absolute_error,
+        mean_squared_error,
+        explained_variance_score,
+        max_error,
+        mean_absolute_percentage_error,
+        mean_squared_log_error
+    )
+    import numpy as np
+    
+    y_pred = model.predict(X)
+    metrics = {}
+
+    # Safe defaults
+    metrics['R-squared'] = r2_score(y, y_pred)
+    metrics['MSE'] = mean_squared_error(y, y_pred)
+    metrics['RMSE'] = np.sqrt(metrics['MSE'])
+    metrics['Explained Variance'] = explained_variance_score(y, y_pred)
+    metrics['MAE'] = mean_absolute_error(y, y_pred)
+    metrics['Max Error'] = max_error(y, y_pred)
+
+    # Handle MAPE with care
+    try:
+        metrics['MAPE'] = mean_absolute_percentage_error(y, y_pred)
+    except ValueError as e:
+        # metrics['MAPE'] = f'Error: {e}'
+        metrics['MAPE'] = None
+
+    # Handle MSLE with care (requires non-negative values)
+    try:
+        metrics['MSLE'] = mean_squared_log_error(y, y_pred)
+    except ValueError as e:
+        # metrics['MSLE'] = f'Error: {e}'
+        metrics['MSLE'] = None
+
+    metrics['n_samples'] = X.shape[0]
+    
+    return metrics
+
+def pseudo_r2(model, X, y):
+    """
+    Calculate McFadden's pseudo-R² 
+    for a fitted scikit-learn LogisticRegression model
+    given fitted model, X, and y
+    Works with binary and multinomial classification.
+    
+    Parameters:
+        model: A fitted sklearn.linear_model.LogisticRegression object
+        X: Features used to fit the model
+        y: True binary labels
+    
+    Returns:
+        McFadden's pseudo-R²
+    """
+    import numpy as np
+    from sklearn.metrics import log_loss
+
+    probas = model.predict_proba(X)
+    ll_full = -log_loss(y, probas, normalize=False)
+    
+    # Build null model prediction: use empirical class distribution
+    classes, class_counts = np.unique(y, return_counts=True)
+    class_probs = class_counts / len(y)
+    probas_null = np.tile(class_probs, (len(y), 1))
+    ll_null = -log_loss(y, probas_null, normalize=False)
+    
+    return 1 - ll_full / ll_null
+
+def extract_logistic_metrics(model, X, y):
+    """
+    Extracts multiple evaluation metrics 
+    from a trained LogisticRegression model
+    given fitted model, X, and y
+    Works with binary and multinomial classification.
+
+    Parameters:
+        model: A fitted sklearn.linear_model.LogisticRegression object
+        X: Features used to fit the model
+        y: True binary labels
+    
+    Returns:
+        dict of relevant sklearn metrics
+    """
+    import numpy as np
+    from sklearn.metrics import (
+        accuracy_score, log_loss, brier_score_loss,
+        f1_score, precision_score, recall_score)
+
+    y_pred = model.predict(X)
+    y_proba = model.predict_proba(X)
+    average_method = 'binary' if len(np.unique(y)) == 2 else 'macro'
+
+    metrics = {
+        "mcfadden_pseudo_r2": pseudo_r2(model, X, y),
+        "accuracy": accuracy_score(y, y_pred),
+        "f1_score": f1_score(y, y_pred, average=average_method),
+        "precision": precision_score(y, y_pred, average=average_method),
+        "recall": recall_score(y, y_pred, average=average_method),
+        "log_loss": log_loss(y, y_proba)
+    }
+
+    # Brier score only valid for binary: take prob class 1
+    if len(np.unique(y)) == 2:
+        metrics["brier_score"] = brier_score_loss(y, y_proba[:, 1])
+
+    metrics['n_classes'] = len(np.unique(y))
+    metrics['n_samples'] = X.shape[0]
+    
+    return metrics
+
 def detect_dummy_variables(df, sep=None):
     """
     Detects dummy variables in a Pandas DataFrame.
@@ -5097,7 +5223,8 @@ def xgb(X, y, **kwargs):
                     - 'categorical_cols': categorical numerical columns 
                     - 'non_numeric_cats': non-numeric categorical columns 
                     - 'continous_cols': continuous numerical columns
-                - 'stats': best model goodness of fit metrics for train data
+                - 'metrics': dict of goodness of fit metrics for train data
+                - 'stats': dataframe of goodness of fit metrics for train data
                 - 'params': core model parameters used for fitting
                 - 'extra_params': extra model paramters used for fitting
                 - 'selected_features': selected features for fitting
@@ -5117,7 +5244,7 @@ def xgb(X, y, **kwargs):
     """
 
     from EasyMLR import stats_given_y_pred, detect_dummy_variables, detect_gpu
-    from EasyMLR import check_X_y, preprocess_train, preprocess_test
+    from EasyMLR import check_X_y, preprocess_train, preprocess_test, extract_linear_metrics
     import time
     import pandas as pd
     import numpy as np
@@ -5227,17 +5354,17 @@ def xgb(X, y, **kwargs):
                 X, threshold=data['threshold'])
             X = data['preprocess_result']['df_processed']
 
+    if data['selected_features'] == None:
+        data['selected_features'] = X.columns
+    else:
+        X = X[data['selected_features']]
+
     # save preprocess outputs
     model_outputs['preprocess'] = data['preprocess']   
     model_outputs['preprocess_result'] = data['preprocess_result'] 
     model_outputs['selected_features'] = data['selected_features']
     model_outputs['X_processed'] = X.copy()
     
-    if data['selected_features'] == None:
-        data['selected_features'] = X.columns
-    else:
-        X = X[data['selected_features']]
-
     params = {
         # params that are optimized by optuna
         'learning_rate': data['learning_rate'],        
@@ -5296,60 +5423,53 @@ def xgb(X, y, **kwargs):
         popt_table.set_index('Feature',inplace=True)
         model_outputs['popt_table'] = popt_table
     
-    # Calculate regression statistics
-    y_pred = fitted_model.predict(X)
-    stats = stats_given_y_pred(X,y,y_pred)
-    
-    # model objects and outputs returned by stacking
-    model_outputs['y_pred'] = stats['y_pred']
-    model_outputs['residuals'] = stats['residuals']
-    # model_objects = model
-    
-    # residual plot for training error
-    if data['verbose'] == 'on':
-        fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
-        PredictionErrorDisplay.from_predictions(
-            y,
-            y_pred=stats['y_pred'],
-            kind="actual_vs_predicted",
-            ax=axs[0]
-        )
-        axs[0].set_title("Actual vs. Predicted")
-        PredictionErrorDisplay.from_predictions(
-            y,
-            y_pred=stats['y_pred'],
-            kind="residual_vs_predicted",
-            ax=axs[1]
-        )
-        axs[1].set_title("Residuals vs. Predicted")
-        fig.suptitle(
-            f"Predictions compared with actual values and residuals (RMSE={stats['RMSE']:.3f})")
-        plt.tight_layout()
-        # plt.show()
-        plt.savefig("XGBRegressor_predictions.png", dpi=300)
-    
-    # Make the model_outputs dataframes
-    list1_name = ['r-squared', 'RMSE', 'n_samples']        
-    list1_val = [stats["rsquared"], stats["RMSE"], stats["n_samples"]]
-    
-    stats = pd.DataFrame(
-        {
-            "Statistic": list1_name,
-            "XGBRegressor": list1_val
-        }
-        )
-    stats.set_index('Statistic',inplace=True)
+    # Goodness of fit statistics
+    metrics = extract_linear_metrics(
+        fitted_model, 
+        X, y)
+    stats = pd.DataFrame([metrics]).T
+    stats.index.name = 'Statistic'
+    stats.columns = ['XGBRegressor']
+    model_outputs['metrics'] = metrics
     model_outputs['stats'] = stats
-    print("XGBRegressor statistics of fitted model in model_outputs['stats']:")
-    print('')
-    print(model_outputs['stats'].to_markdown(index=True))
-    print('')
+    model_outputs['y_pred'] = fitted_model.predict(X)
+
+    if data['verbose'] == 'on':
+        print('')
+        print("XGBRegressor goodness of fit to training data in model_outputs['stats']:")
+        print('')
+        print(model_outputs['stats'].to_markdown(index=True))
+        print('')
+
     if hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_'):
         print("Parameters of fitted model in model_outputs['popt']:")
         print('')
         print(model_outputs['popt_table'].to_markdown(index=True))
         print('')
 
+    # residual plot for training error
+    if data['verbose'] == 'on':
+        fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
+        PredictionErrorDisplay.from_predictions(
+            y,
+            y_pred=model_outputs['y_pred'],
+            kind="actual_vs_predicted",
+            ax=axs[0]
+        )
+        axs[0].set_title("Actual vs. Predicted")
+        PredictionErrorDisplay.from_predictions(
+            y,
+            y_pred=model_outputs['y_pred'],
+            kind="residual_vs_predicted",
+            ax=axs[1]
+        )
+        axs[1].set_title("Residuals vs. Predicted")
+        fig.suptitle(
+            f"Predictions compared with actual values and residuals (RMSE={metrics['RMSE']:.3f})")
+        plt.tight_layout()
+        # plt.show()
+        plt.savefig("XGBRegressor_predictions.png", dpi=300)
+    
     # Print the run time
     fit_time = time.time() - start_time
     print('Done')
@@ -5534,7 +5654,8 @@ def xgb_auto(X, y, **kwargs):
                 - 'selected_features' = selected features
                 - 'best_params': best model hyper-parameters found by optuna
                 - 'extra_params': other model options used to fit the model
-                - 'stats': best model goodness of fit metrics for train data
+                - 'metrics': dict of goodness of fit metrics for train data
+                - 'stats': dataframe of goodness of fit metrics for train data
                 - 'X_processed': pre-processed X with encoding and scaling
                 - 'y_pred': best model predicted y
 
@@ -5551,7 +5672,7 @@ def xgb_auto(X, y, **kwargs):
     """
 
     from EasyMLR import stats_given_y_pred, detect_dummy_variables, detect_gpu
-    from EasyMLR import preprocess_train, preprocess_test
+    from EasyMLR import preprocess_train, preprocess_test, extract_linear_metrics
     import time
     import pandas as pd
     import numpy as np
@@ -5687,10 +5808,6 @@ def xgb_auto(X, y, **kwargs):
     print('Running optuna to find best parameters, could take a few minutes, please wait...')
     optuna.logging.set_verbosity(optuna.logging.ERROR)
 
-    # # study = optuna.create_study(direction="maximize")
-    # study = optuna.create_study(
-    #     direction="maximize", sampler=optuna.samplers.TPESampler(seed=data['random_state']))
-
     # optional pruning
     if data['pruning']:
         study = optuna.create_study(
@@ -5703,6 +5820,7 @@ def xgb_auto(X, y, **kwargs):
             sampler=optuna.samplers.TPESampler(seed=data['random_state'], multivariate=True))
     
     X_opt = X.copy()    # copy X to prevent altering the original
+    from EasyMLR import xgb_objective
     study.optimize(lambda trial: xgb_objective(trial, X_opt, y, **data), n_trials=data['n_trials'])
 
     # save outputs
@@ -5752,58 +5870,52 @@ def xgb_auto(X, y, **kwargs):
         popt_table.set_index('Feature',inplace=True)
         model_outputs['popt_table'] = popt_table
     
-    # Calculate regression statistics
-    y_pred = fitted_model.predict(X[model_outputs['selected_features']])
-    stats = stats_given_y_pred(X[model_outputs['selected_features']],y,y_pred)
-    
-    # save outputs
-    model_outputs['y_pred'] = stats['y_pred']
-    model_outputs['residuals'] = stats['residuals']
-    
+    # Goodness of fit statistics
+    metrics = extract_linear_metrics(
+        fitted_model, 
+        X[model_outputs['selected_features']], y)
+    stats = pd.DataFrame([metrics]).T
+    stats.index.name = 'Statistic'
+    stats.columns = ['XGBRegressor']
+    model_outputs['metrics'] = metrics
+    model_outputs['stats'] = stats
+    model_outputs['y_pred'] = fitted_model.predict(X[model_outputs['selected_features']])
+
+    if data['verbose'] == 'on':
+        print('')
+        print("XGBRegressor goodness of fit to training data in model_outputs['stats']:")
+        print('')
+        print(model_outputs['stats'].to_markdown(index=True))
+        print('')
+
+    if hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_'):
+        print("Parameters of fitted model in model_outputs['popt']:")
+        print('')
+        print(model_outputs['popt_table'].to_markdown(index=True))
+        print('')
+
     # residual plot for training error
     if data['verbose'] == 'on':
         fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
         PredictionErrorDisplay.from_predictions(
             y,
-            y_pred=stats['y_pred'],
+            y_pred=model_outputs['y_pred'],
             kind="actual_vs_predicted",
             ax=axs[0]
         )
         axs[0].set_title("Actual vs. Predicted")
         PredictionErrorDisplay.from_predictions(
             y,
-            y_pred=stats['y_pred'],
+            y_pred=model_outputs['y_pred'],
             kind="residual_vs_predicted",
             ax=axs[1]
         )
         axs[1].set_title("Residuals vs. Predicted")
         fig.suptitle(
-            f"Predictions compared with actual values and residuals (RMSE={stats['RMSE']:.3f})")
+            f"Predictions compared with actual values and residuals (RMSE={metrics['RMSE']:.3f})")
         plt.tight_layout()
         # plt.show()
         plt.savefig("XGBRegressor_predictions.png", dpi=300)
-    
-    # Make the model_outputs dataframes
-    list1_name = ['r-squared', 'RMSE', 'n_samples']        
-    list1_val = [stats["rsquared"], stats["RMSE"], stats["n_samples"]]
-    
-    stats = pd.DataFrame(
-        {
-            "Statistic": list1_name,
-            "XGBRegressor": list1_val
-        }
-        )
-    stats.set_index('Statistic',inplace=True)
-    model_outputs['stats'] = stats
-    print("XGBRegressor statistics of fitted model in model_outputs['stats']:")
-    print('')
-    print(model_outputs['stats'].to_markdown(index=True))
-    print('')
-    if hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_'):
-        print("Parameters of fitted model in model_outputs['popt']:")
-        print('')
-        print(model_outputs['popt_table'].to_markdown(index=True))
-        print('')
 
     # Print the run time
     fit_time = time.time() - start_time
@@ -8148,65 +8260,6 @@ def knn_auto(X, y, **kwargs):
     warnings.filterwarnings("default")
 
     return fitted_model, model_outputs
-
-def pseudo_r2(model, X, y):
-    """
-    Calculate McFadden's pseudo-R² for a fitted scikit-learn LogisticRegression model
-    Works with binary and multinomial classification.
-    
-    Parameters:
-        model: A fitted sklearn.linear_model.LogisticRegression object
-        X: Features used to fit the model
-        y: True binary labels
-    
-    Returns:
-        McFadden's pseudo-R²
-    """
-    import numpy as np
-    from sklearn.metrics import log_loss
-
-    probas = model.predict_proba(X)
-    ll_full = -log_loss(y, probas, normalize=False)
-    
-    # Build null model prediction: use empirical class distribution
-    classes, class_counts = np.unique(y, return_counts=True)
-    class_probs = class_counts / len(y)
-    probas_null = np.tile(class_probs, (len(y), 1))
-    ll_null = -log_loss(y, probas_null, normalize=False)
-    
-    return 1 - ll_full / ll_null
-
-def extract_logistic_metrics(model, X, y):
-    """
-    Extracts multiple evaluation metrics from a trained LogisticRegression model.
-    Works with binary and multinomial classification.
-    """
-    import numpy as np
-    from sklearn.metrics import (
-        accuracy_score, log_loss, brier_score_loss,
-        f1_score, precision_score, recall_score)
-
-    y_pred = model.predict(X)
-    y_proba = model.predict_proba(X)
-    average_method = 'binary' if len(np.unique(y)) == 2 else 'macro'
-
-    metrics = {
-        "mcfadden_pseudo_r2": pseudo_r2(model, X, y),
-        "accuracy": accuracy_score(y, y_pred),
-        "f1_score": f1_score(y, y_pred, average=average_method),
-        "precision": precision_score(y, y_pred, average=average_method),
-        "recall": recall_score(y, y_pred, average=average_method),
-        "log_loss": log_loss(y, y_proba)
-    }
-
-    # Brier score only valid for binary: take prob class 1
-    if len(np.unique(y)) == 2:
-        metrics["brier_score"] = brier_score_loss(y, y_proba[:, 1])
-
-    metrics['n_classes'] = len(np.unique(y))
-    metrics['n_samples'] = X.shape[0]
-    
-    return metrics
 
 def plot_confusion_matrix(model, X, y):
     '''
