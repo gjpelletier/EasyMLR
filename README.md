@@ -33,11 +33,11 @@ The functions in EasyMLR allow the user to write one line of high-level python c
 - figures showing other diagnostic descriptions of the analysis if applicable (e.g. coefficients vs alpha, MSE vs alpha, AIC and BIC vs alpha)
 - show plots of optuna optimization history, hyperparameter importance, and contour plots of relationships between hyperparameters and MSE 
 - automatic cross-validated Bayesian optimization of hyperparameters
-- automatic standardization of X and output of the scaler (optional)
 - automatic PCA transform of X with PCA-KNN regression and output of the optimized fitted PCA transformer (optional, knn_auto and knn)
-- automatic detection and use of GPU for computations (XGBoost and CatBoost)
-- automatic prevention of overfitting the training data with KNN regression (knn_auto)
-- automatic detection of categorical features and application of OneHotEncoder (LogisticRegression)
+- automatic detection and use of GPU for computations (xgb, catboost)
+- automatic prevention of overfitting the training data with KNN regression (knn)
+- automatic detection of categorical features and application of OneHotEncoder (logistic, xgb)
+- automatic standardization of X and output of the scaler (optional)
 - optimization of feature selection (logistic, xgb)
 - optimization of logistic regression for binomial or multinomial response variables
 
