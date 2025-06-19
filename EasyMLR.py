@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.107"
+__version__ = "1.1.108"
 
 def check_X_y(X,y):
 
@@ -5576,64 +5576,75 @@ def xgb(X, y, **kwargs):
 
 def xgb_objective(trial, X, y, **kwargs):
     '''
-    Objective function used by Optuna to optimize hyperparameters
-    for XGBRegressor with optional SelectKBest feature selection.
-    Using Pipeline for feature selector and regressor.
-    18-Jun-2025
+    Optuna objective for optimizing XGBRegressor with optional feature selection.
+    Supports selector choice, logs importances, and ensures reproducibility.
     '''
+
     import numpy as np
     import pandas as pd
     import xgboost as xgb
-    from sklearn.feature_selection import SelectKBest, mutual_info_regression
-    from sklearn.pipeline import make_pipeline
-    from sklearn.model_selection import cross_val_score, KFold
+    from sklearn.feature_selection import SelectKBest, mutual_info_regression, f_regression
+    from sklearn.pipeline import Pipeline
+    from sklearn.model_selection import cross_val_score, RepeatedKFold
 
-    seed = kwargs.get('random_state', 42)
-    np.random.seed(seed)
+    seed = kwargs.get("random_state", 42)
+    rng = np.random.default_rng(seed)
 
-    # Define hyperparameter search space
+    # Define hyperparameter space
     params = {
-        "learning_rate": trial.suggest_float("learning_rate", *kwargs['learning_rate']),
-        "max_depth": trial.suggest_int("max_depth", *kwargs['max_depth']),
-        "min_child_weight": trial.suggest_int("min_child_weight", *kwargs['min_child_weight']),
-        "subsample": trial.suggest_float("subsample", *kwargs['subsample']),
-        "colsample_bytree": trial.suggest_float("colsample_bytree", *kwargs['colsample_bytree']),
-        "gamma": trial.suggest_float("gamma", *kwargs['gamma']),
-        "reg_lambda": trial.suggest_float("reg_lambda", *kwargs['reg_lambda']),
-        "alpha": trial.suggest_float("alpha", *kwargs['alpha']),
-        "n_estimators": trial.suggest_int("n_estimators", *kwargs['n_estimators']),
+        "learning_rate": trial.suggest_float("learning_rate", *kwargs["learning_rate"], log=True),
+        "max_depth": trial.suggest_int("max_depth", *kwargs["max_depth"]),
+        "min_child_weight": trial.suggest_int("min_child_weight", *kwargs["min_child_weight"]),
+        "subsample": trial.suggest_float("subsample", *kwargs["subsample"]),
+        "colsample_bytree": trial.suggest_float("colsample_bytree", *kwargs["colsample_bytree"]),
+        "gamma": trial.suggest_float("gamma", *kwargs["gamma"], log=True),
+        "reg_lambda": trial.suggest_float("reg_lambda", *kwargs["reg_lambda"], log=True),
+        "alpha": trial.suggest_float("alpha", *kwargs["alpha"], log=True),
+        "n_estimators": trial.suggest_int("n_estimators", *kwargs["n_estimators"]),
     }
 
     extra_params = {
-        'random_state': seed,
-        'device': kwargs['device'],
-        'verbosity': kwargs['verbosity'],
-        'objective': kwargs['objective'],
-        'booster': kwargs['booster'],
-        'tree_method': kwargs['tree_method'],
-        'nthread': kwargs['nthread'],
-        'colsample_bylevel': kwargs['colsample_bylevel'],
-        'colsample_bynode': kwargs['colsample_bynode'],
-        'scale_pos_weight': kwargs['scale_pos_weight'],
-        'base_score': kwargs['base_score'],
-        'missing': kwargs['missing'],
-        'importance_type': kwargs['importance_type'],
-        'predictor': kwargs['predictor'],
-        'enable_categorical': kwargs['enable_categorical']
+        "random_state": seed,
+        "device": kwargs["device"],
+        "verbosity": kwargs["verbosity"],
+        "objective": kwargs["objective"],
+        "booster": kwargs["booster"],
+        "tree_method": kwargs["tree_method"],
+        "nthread": kwargs["nthread"],
+        "colsample_bylevel": kwargs["colsample_bylevel"],
+        "colsample_bynode": kwargs["colsample_bynode"],
+        "scale_pos_weight": kwargs["scale_pos_weight"],
+        "base_score": kwargs["base_score"],
+        "missing": kwargs["missing"],
+        "importance_type": kwargs["importance_type"],
+        "predictor": kwargs["predictor"],
+        "enable_categorical": kwargs["enable_categorical"],
     }
 
-    # Conditionally create pipeline with SelectKBest
+    # Feature selection
     if kwargs.get("feature_selection", True):
         num_features = trial.suggest_int("num_features", max(5, X.shape[1] // 10), X.shape[1])
-        score_func = lambda X_, y_: mutual_info_regression(X_, y_, random_state=seed)
+        selector_type = trial.suggest_categorical("selector_type", ["mutual_info", "f_regression"])
+
+        if selector_type == "mutual_info":
+            score_func = lambda X_, y_: mutual_info_regression(X_, y_, random_state=seed)
+        else:
+            score_func = f_regression
+
         selector = SelectKBest(score_func=score_func, k=num_features)
-        pipeline = make_pipeline(selector, xgb.XGBRegressor(**params, **extra_params))
+
+        pipeline = Pipeline([
+            ("feature_selector", selector),
+            ("regressor", xgb.XGBRegressor(**params, **extra_params))
+        ])
     else:
-        pipeline = make_pipeline(xgb.XGBRegressor(**params, **extra_params))
+        pipeline = Pipeline([
+            ("regressor", xgb.XGBRegressor(**params, **extra_params))
+        ])
         num_features = None
 
-    # Cross-validated scoring
-    cv = KFold(n_splits=kwargs['n_splits'], shuffle=True, random_state=seed)
+    # Cross-validated scoring with RepeatedKFold
+    cv = RepeatedKFold(n_splits=kwargs["n_splits"], n_repeats=2, random_state=seed)
     scores = cross_val_score(
         pipeline, X, y,
         cv=cv,
@@ -5641,20 +5652,26 @@ def xgb_objective(trial, X, y, **kwargs):
     )
     score_mean = np.mean(scores)
 
-    # Optional: refit on full data to get final feature names
+    # Fit on full data to extract feature info
     pipeline.fit(X, y)
 
     if kwargs.get("feature_selection", True):
-        selector_step = pipeline.named_steps['selectkbest']
+        selector_step = pipeline.named_steps["feature_selector"]
         selected_indices = selector_step.get_support(indices=True)
         selected_features = np.array(kwargs["feature_names"])[selected_indices].tolist()
     else:
-        selected_features = kwargs['feature_names']
+        selected_features = kwargs["feature_names"]
 
-    # Log to trial
+    # Log feature importances and metadata
+    model_step = pipeline.named_steps["regressor"]
+    importances = getattr(model_step, "feature_importances_", None)
+    if importances is not None:
+        trial.set_user_attr("feature_importances", importances.tolist())
+
     trial.set_user_attr("model", pipeline)
     trial.set_user_attr("score", score_mean)
     trial.set_user_attr("selected_features", selected_features)
+    trial.set_user_attr("selector_type", selector_type if kwargs.get("feature_selection", True) else None)
 
     return score_mean
 
@@ -5698,15 +5715,15 @@ def xgb_auto(X, y, **kwargs):
                                     # to encode with OneHotEncoder
 
         # [min, max] ranges of params for model to be optimized by optuna:
-        learning_rate= [0.01, 0.3], # Step size shrinkage (also called eta).
-        max_depth= [3, 10],         # Maximum depth of a tree.
+        learning_rate= [1e-4, 1.0], # Step size shrinkage (also called eta).
+        max_depth= [3, 12],         # Maximum depth of a tree.
         min_child_weight= [1, 10],  # Minimum sum of instance weight 
                                     # (hessian) needed in a child.
         subsample= [0.5, 1],        # Fraction of samples used for training each tree.
         colsample_bytree= [0.5, 1], # Fraction of features used for each tree.
-        gamma= [0, 10],             # Minimum loss reduction to make a split.
-        reg_lambda= [0, 10],        # L2 regularization term on weights.
-        alpha= [0, 10],             # L1 regularization term on weights.
+        gamma= [1e-8, 10.0],        # Minimum loss reduction to make a split.
+        reg_lambda= [1e-8, 10.0],   # L2 regularization term on weights.
+        alpha= [1e-8, 10.0],        # L1 regularization term on weights.
         n_estimators= [100, 1000]   # Number of boosting rounds (trees).
 
         # extra_params for model that are optional user-specified
@@ -5805,14 +5822,14 @@ def xgb_auto(X, y, **kwargs):
                                             # categorical numeric features
 
         # params that are optimized by optuna
-        'learning_rate': [0.01, 0.3],       # Step size shrinkage (also called eta).
-        'max_depth': [3, 10],               # Maximum depth of a tree.
+        'learning_rate': [1e-4, 1.0],       # Step size shrinkage (also called eta).
+        'max_depth': [3, 12],               # Maximum depth of a tree.
         'min_child_weight': [1, 10],        # Minimum sum of instance weight (hessian) needed in a child.
         'subsample': [0.5, 1],              # Fraction of samples used for training each tree.
         'colsample_bytree': [0.5, 1],       # Fraction of features used for each tree.
-        'gamma': [0, 10],                   # Minimum loss reduction to make a split.
-        'reg_lambda': [0, 10],              # L2 regularization term on weights.
-        'alpha': [0, 10],                   # L1 regularization term on weights.
+        'gamma': [1e-8, 10.0],              # Minimum loss reduction to make a split.
+        'reg_lambda': [1e-8, 10.0],         # L2 regularization term on weights.
+        'alpha': [1e-8, 10.0],              # L1 regularization term on weights.
         'n_estimators': [100, 1000],        # Number of boosting rounds (trees).
 
         # extra_params that are optional user-specified
