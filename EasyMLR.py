@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.104"
+__version__ = "1.1.105"
 
 def check_X_y(X,y):
 
@@ -8486,8 +8486,9 @@ def test_logistic_model(
         X[selected_features], y)
     stats = pd.DataFrame([metrics]).T
     stats.index.name = 'Statistic'
-    stats.columns = ['LogisticRegression']
+    stats.columns = ['Regressor']
     results = {}
+    results['metrics'] = metrics
     results['stats'] = stats
     print('')
     print("LogisticRegression goodness of fit to testing data in results['stats']:")
