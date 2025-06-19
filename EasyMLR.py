@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.100"
+__version__ = "1.1.101"
 
 def check_X_y(X,y):
 
@@ -5526,7 +5526,7 @@ def xgb_auto(X, y, **kwargs):
                     - 'scaler': StandardScaler for continuous X
                     - 'categorical_cols': categorical numerical columns
                     - 'non_numeric_cats': non-numeric categorical columns
-                    - 'continous_cols': continuous numerical columns                - 'optuna_study': optimzed optuna study object
+                    - 'continous_cols': continuous numerical columns                
                 - 'optuna_study': optimzed optuna study object
                 - 'optuna_model': optimzed optuna model object
                 - 'best_trial': best trial from the optuna study
