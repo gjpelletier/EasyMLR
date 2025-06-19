@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.97"
+__version__ = "1.1.99"
 
 def check_X_y(X,y):
 
@@ -154,7 +154,7 @@ def preprocess_train(df, threshold=10, scale='standard'):
 
     # Scaling
     if continuous_cols:
-        scaler = MinMaxScaler() if scale == 'minmax' else StandardScaler()
+        scaler = StandardScaler() if scale == 'standard' else MinMaxScaler()
         scaled_array = scaler.fit_transform(df[continuous_cols])
         scaled_df = pd.DataFrame(scaled_array, columns=continuous_cols, index=df.index).astype(float)
     else:
@@ -354,6 +354,70 @@ def show_optuna(study):
 
     return
 
+def plot_linear_results_test(
+        model, X, y, preprocess_result=None, selected_features=None):
+
+    """
+    Plots Actual vs Predicted and Residuals vs Predicted 
+    for fitted sklearn linear regression models 
+
+    Args:
+    model= fitted sklearn linear regression model object
+    X = dataframe of the candidate independent variables 
+    y = series of the dependent variable (one column of data)
+    preprocess_results = results of preprocess_train
+    selected_features = optimized selected features
+    Returns:
+        fig= figure for the plot
+    """
+ 
+    from EasyMLR import check_X_y, preprocess_test
+    import pandas as pd
+    import numpy as np
+    from sklearn.metrics import PredictionErrorDisplay
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.decomposition import PCA
+    import matplotlib.pyplot as plt
+    import warnings
+    import sys
+
+    # copy X and y to avoid altering originals
+    X = X.copy()
+    y = y.copy()
+
+    # check X and y and put into dataframe if needed
+    X, y = check_X_y(X, y)
+    
+    if selected_features==None:
+        selected_features = X.columns
+
+    if preprocess_result!=None:
+        X = preprocess_test(X, preprocess_result)
+        
+    y_pred = model.predict(X[selected_features])    
+    
+    fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
+    PredictionErrorDisplay.from_predictions(
+        y,
+        y_pred,
+        kind="actual_vs_predicted",
+        ax=axs[0]
+    )
+    axs[0].set_title("Actual vs. Predicted")
+    PredictionErrorDisplay.from_predictions(
+        y,
+        y_pred,
+        kind="residual_vs_predicted",
+        ax=axs[1]
+    )
+    axs[1].set_title("Residuals vs. Predicted")
+    rmse = np.sqrt(np.mean((y-y_pred)**2))
+    fig.suptitle(
+        f"Predictions compared with actual values and residuals (RMSE={rmse:.3f})")
+    plt.tight_layout()
+
+    return fig
+    
 def plot_predictions_from_test(
     model, X, y, 
     standardize=True, scaler=None, 
@@ -4972,7 +5036,7 @@ def xgb(X, y, **kwargs):
     by
     Greg Pelletier
     gjpelletier@gmail.com
-    03-June-2025
+    18-June-2025
 
     REQUIRED INPUTS (X and y should have same number of rows and 
     only contain real numbers)
@@ -4983,28 +5047,36 @@ def xgb(X, y, **kwargs):
     OPTIONAL KEYWORD ARGUMENTS
     **kwargs (optional keyword arguments):
         verbose= 'on' (default) or 'off'
-        standardize= True (default) or False where
-            True: standardize X using sklearn.preprocessing StandardScaler
-            False: do not standardize X (only used if X is already standardized)
+        preprocess= True,           # Apply OneHotEncoder and StandardScaler
+        preprocess_result= None,    # dict of the following result from 
+                                    # preprocess_train if available:         
+                                    # - encoder          (OneHotEncoder)
+                                    # - scaler           (StandardScaler)
+                                    # - categorical_cols (categorical cols)
+                                    # - non_numeric_cats (non-num cat cols)
+                                    # - continuous_cols  (continuous cols)
         gpu= True (default) or False to autodetect if the computer has a gpu and use it
 
-        random_state= 42,           # Random seed for reproducibility.
+        # params that are optimized by optuna
+        learning_rate= 0.05,        # Step size shrinkage (also called eta).
+        max_depth= 3,               # Maximum depth of a tree.
+        min_child_weight= 0,        # Minimum sum of instance weight (hessian) needed in a child.
+        subsample= 0.7,             # Fraction of samples used for training each tree.
+        colsample_bytree= 0.7,      # Fraction of features used for each tree.
+        gamma= 0,                   # Minimum loss reduction to make a split.
+        reg_lambda= 1,              # L2 regularization term on weights.
+        alpha= 0,                   # L1 regularization term on weights.
         n_estimators= 100,          # Number of boosting rounds (trees).
-        max_depth= 6,               # Maximum depth of a tree.
-        learning_rate= 0.3,         # Step size shrinkage (also called eta).
+
+        # extra_params that are optional user-specified
+        random_state= 42,           # Random seed for reproducibility.
         verbosity= 1,               # Verbosity of output (0 = silent, 1 = warnings, 2 = info).
         objective= "reg:squarederror",  # Loss function for regression.
         booster= "gbtree",          # Type of booster ('gbtree', 'gblinear', or 'dart').
         tree_method= "auto",        # Tree construction algorithm.
-        nthread= -1,                # Number of parallel threads (-1 uses all cpus).
-        gamma= 0,                   # Minimum loss reduction to make a split.
-        min_child_weight= 1,        # Minimum sum of instance weight (hessian) needed in a child.
-        subsample= 1,               # Fraction of samples used for training each tree.
-        colsample_bytree= 1,        # Fraction of features used for each tree.
+        nthread= -1,                # Number of parallel threads.
         colsample_bylevel= 1,       # Fraction of features used per tree level.
         colsample_bynode= 1,        # Fraction of features used per tree node.
-        reg_alpha= 0,               # L1 regularization term on weights.
-        reg_lambda= 1,              # L2 regularization term on weights.
         scale_pos_weight= 1,        # Balancing of positive and negative weights.
         base_score= 0.5,            # Initial prediction score (global bias).
         missing= np.nan,            # Value in the data to be treated as missing.
@@ -5018,11 +5090,19 @@ def xgb(X, y, **kwargs):
         fitted_model, model_outputs
             model_objects is the fitted model object
             model_outputs is a dictionary of the following outputs: 
-                - 'scaler': sklearn.preprocessing StandardScaler for X
-                - 'standardize': True scaler was used for X, False scaler not used
-                - 'y_pred': Predicted y values
-                - 'residuals': Residuals (y-y_pred) for each of the four methods
-                - 'stats': Regression statistics for each model
+                - 'preprocess': True for OneHotEncoder and StandardScaler
+                - 'preprocess_result': output or echo of the following:
+                    - 'encoder': OneHotEncoder for categorical X
+                    - 'scaler': StandardScaler for continuous X
+                    - 'categorical_cols': categorical numerical columns 
+                    - 'non_numeric_cats': non-numeric categorical columns 
+                    - 'continous_cols': continuous numerical columns
+                - 'stats': best model goodness of fit metrics for train data
+                - 'params': core model parameters used for fitting
+                - 'extra_params': extra model paramters used for fitting
+                - 'selected_features': selected features for fitting
+                - 'X_processed': final pre-processed and selected features
+                - 'y_pred': best model predicted y
 
     NOTE
     Do any necessary/optional cleaning of the data before 
@@ -5037,6 +5117,7 @@ def xgb(X, y, **kwargs):
     """
 
     from EasyMLR import stats_given_y_pred, detect_dummy_variables, detect_gpu
+    from EasyMLR import check_X_y, preprocess_train, preprocess_test
     import time
     import pandas as pd
     import numpy as np
@@ -5056,37 +5137,60 @@ def xgb(X, y, **kwargs):
 
     # Define default values of input data arguments
     defaults = {
-        'random_state': 42,           # Random seed for reproducibility.
+        'preprocess': True,           # True for OneHotEncoder and StandardScaler
+        'preprocess_result': None,    # dict of  the following result from 
+                                      # preprocess_train if available:         
+                                      # - encoder          (OneHotEncoder) 
+                                      # - scaler           (StandardScaler)
+                                      # - categorical_cols (categorical columns)
+                                      # - non_numeric_cats (non-numeric cats)
+                                      # - continuous_cols  (continuous columns)
+        'threshold': 10,              # threshold for number of 
+                                      # unique values for 
+                                      # categorical numeric features
+        'selected_features': None,    # pre-optimized selected features
         'standardize': True,
         'verbose': 'on',
         'gpu': True,                  # Autodetect if the computer has a gpu, if no gpu is detected then cpu will be used
-        'n_estimators': 100,          # Number of boosting rounds (trees).
+
+        # params that are optimized by optuna
+        'learning_rate': 0.05,        # Step size shrinkage (also called eta).
         'max_depth': 3,               # Maximum depth of a tree.
-        'learning_rate': 0.05,         # Step size shrinkage (also called eta).
+        'min_child_weight': 0,        # Minimum sum of instance weight (hessian) needed in a child.
+        'subsample': 0.7,             # Fraction of samples used for training each tree.
+        'colsample_bytree': 0.7,      # Fraction of features used for each tree.
+        'gamma': 0,                   # Minimum loss reduction to make a split.
+        'reg_lambda': 1,              # L2 regularization term on weights.
+        'alpha': 0,               # L1 regularization term on weights.
+        'n_estimators': 100,          # Number of boosting rounds (trees).
+
+        # extra_params that are optional user-specified
+        'random_state': 42,           # Random seed for reproducibility.
         'verbosity': 1,               # Verbosity of output (0 = silent, 1 = warnings, 2 = info).
         'objective': "reg:squarederror",  # Loss function for regression.
         'booster': "gbtree",          # Type of booster ('gbtree', 'gblinear', or 'dart').
         'tree_method': "auto",        # Tree construction algorithm.
-        'nthread': -1,                  # Number of parallel threads.
-        'gamma': 0,                   # Minimum loss reduction to make a split.
-        'min_child_weight': 0,        # Minimum sum of instance weight (hessian) needed in a child.
-        'subsample': 0.7,               # Fraction of samples used for training each tree.
-        'colsample_bytree': 0.7,        # Fraction of features used for each tree.
+        'nthread': -1,                # Number of parallel threads.
         'colsample_bylevel': 1,       # Fraction of features used per tree level.
         'colsample_bynode': 1,        # Fraction of features used per tree node.
-        'reg_alpha': 0,               # L1 regularization term on weights.
-        'reg_lambda': 1,              # L2 regularization term on weights.
         'scale_pos_weight': 1,        # Balancing of positive and negative weights.
         'base_score': 0.5,            # Initial prediction score (global bias).
         'missing': np.nan,            # Value in the data to be treated as missing.
         'importance_type': "gain",    # Feature importance type ('weight', 'gain', 'cover', 'total_gain', 'total_cover').
         'predictor': "auto",          # Type of predictor ('cpu_predictor', 'gpu_predictor').
         'enable_categorical': False   # Whether to enable categorical data support.    
+
     }
 
     # Update input data argumements with any provided keyword arguments in kwargs
     data = {**defaults, **kwargs}
 
+    # Suppress warnings
+    warnings.filterwarnings('ignore')
+    print('Fitting XGBRegressor model, please wait ...')
+    if data['verbose'] == 'on':
+        print('')
+    
     if data['gpu']:
         use_gpu = detect_gpu()
         if use_gpu:
@@ -5096,14 +5200,12 @@ def xgb(X, y, **kwargs):
     else:
         data['device'] = 'cpu'
 
-    from EasyMLR import check_X_y
+    # copy X and y to prevent altering original
+    X = X.copy()
+    y = y.copy()
+    
+    # QC check X and y
     X, y = check_X_y(X,y)
-
-    # Suppress warnings
-    warnings.filterwarnings('ignore')
-    print('Fitting XGBRegressor model, please wait ...')
-    if data['verbose'] == 'on':
-        print('')
 
     # Set start time for calculating run time
     start_time = time.time()
@@ -5115,49 +5217,59 @@ def xgb(X, y, **kwargs):
     model_objects = {}
     model_outputs = {}
 
-    # Standardized X (X_scaled)
-    scaler = StandardScaler().fit(X)
-    X_scaled = scaler.transform(X)
-    # Convert scaled arrays into pandas dataframes with same column names as X
-    X_scaled = pd.DataFrame(X_scaled, columns=X.columns)
-    # Copy index from unscaled to scaled dataframes
-    X_scaled.index = X.index
-    # model_outputs['X_scaled'] = X_scaled                 # standardized X
-    model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
+    # Pre-process X to apply OneHotEncoder and StandardScaler
+    if data['preprocess']:
+        if data['preprocess_result']!=None:
+            # print('preprocess_test')
+            X = preprocess_test(X, data['preprocess_result'])
+        else:
+            data['preprocess_result'] = preprocess_train(
+                X, threshold=data['threshold'])
+            X = data['preprocess_result']['df_processed']
 
-    # Specify X to be used for fitting the models 
-    if data['standardize']:
-        X = X_scaled.copy()
+    # save preprocess outputs
+    model_outputs['preprocess'] = data['preprocess']   
+    model_outputs['preprocess_result'] = data['preprocess_result'] 
+    model_outputs['selected_features'] = data['selected_features']
+    model_outputs['X_processed'] = X.copy()
+    
+    if data['selected_features'] == None:
+        data['selected_features'] = X.columns
     else:
-        X = X.copy()
+        X = X[data['selected_features']]
 
-    fitted_model = XGBRegressor(
-        random_state= data['random_state'],         
-        n_estimators= data['n_estimators'],          
-        max_depth= data['max_depth'],               
-        learning_rate= data['learning_rate'],         
-        verbosity= data['verbosity'],              
-        objective= data['objective'], 
-        booster= data['booster'],          
-        tree_method= data['tree_method'],        
-        nthread= data['nthread'],                  
-        gamma= data['gamma'],                   
-        min_child_weight= data['min_child_weight'],        
-        subsample= data['subsample'],               
-        colsample_bytree= data['colsample_bytree'],        
-        colsample_bylevel= data['colsample_bylevel'],       
-        colsample_bynode= data['colsample_bynode'],        
-        reg_alpha= data['reg_alpha'],               
-        reg_lambda= data['reg_lambda'],             
-        scale_pos_weight= data['scale_pos_weight'],        
-        base_score= data['base_score'],            
-        missing= data['missing'],           
-        importance_type= data['importance_type'],    
-        device= data['device'],                 
-        predictor= data['predictor'],          
-        enable_categorical= data['enable_categorical']  
-        ).fit(X,y)
+    params = {
+        # params that are optimized by optuna
+        'learning_rate': data['learning_rate'],        
+        'max_depth': data['max_depth'],               
+        'min_child_weight': data['min_child_weight'],        
+        'subsample': data['subsample'],             
+        'colsample_bytree': data['colsample_bytree'],      
+        'gamma': data['gamma'],                 
+        'reg_lambda': data['reg_lambda'],            
+        'alpha': data['alpha'],              
+        'n_estimators': data['n_estimators']         
+    }
+
+    extra_params = {
+        'random_state': data['random_state'],         
+        'device': data['device'],                 
+        'verbosity': data['verbosity'],              
+        'objective': data['objective'], 
+        'booster': data['booster'],          
+        'tree_method': data['tree_method'],        
+        'nthread': data['nthread'],                  
+        'colsample_bylevel': data['colsample_bylevel'],       
+        'colsample_bynode': data['colsample_bynode'],        
+        'scale_pos_weight': data['scale_pos_weight'],        
+        'base_score': data['base_score'],            
+        'missing': data['missing'],           
+        'importance_type': data['importance_type'],    
+        'predictor': data['predictor'],          
+        'enable_categorical': data['enable_categorical']  
+    }
+    
+    fitted_model = XGBRegressor(**params, **extra_params).fit(X,y)
         
     # check to see of the model has intercept and coefficients
     if (hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_') 
@@ -5189,8 +5301,6 @@ def xgb(X, y, **kwargs):
     stats = stats_given_y_pred(X,y,y_pred)
     
     # model objects and outputs returned by stacking
-    model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
     model_outputs['y_pred'] = stats['y_pred']
     model_outputs['residuals'] = stats['residuals']
     # model_objects = model
@@ -5253,75 +5363,99 @@ def xgb(X, y, **kwargs):
 
 def xgb_objective(trial, X, y, **kwargs):
     '''
-    Objective function used by optuna 
-    to find the optimum hyper-parameters for XGBoost
+    Objective function used by Optuna to optimize hyperparameters
+    for XGBRegressor with optional SelectKBest feature selection.
+    Using Pipeline for feature selector and regressor.
+    18-Jun-2025
     '''
     import numpy as np
+    import pandas as pd
     import xgboost as xgb
+    from sklearn.feature_selection import SelectKBest, mutual_info_regression
+    from sklearn.pipeline import make_pipeline
     from sklearn.model_selection import cross_val_score, KFold
-    from EasyMLR import detect_gpu
 
-    # Set global random seed
-    np.random.seed(kwargs['random_state'])
-    
+    seed = kwargs.get('random_state', 42)
+    np.random.seed(seed)
+
+    # Define hyperparameter search space
     params = {
-        "learning_rate": trial.suggest_float("learning_rate",
-            kwargs['learning_rate'][0], kwargs['learning_rate'][1]),
-        "max_depth": trial.suggest_int("max_depth",
-            kwargs['max_depth'][0], kwargs['max_depth'][1]),
-        "min_child_weight": trial.suggest_int("min_child_weight",
-            kwargs['min_child_weight'][0], kwargs['min_child_weight'][1]),
-        "subsample": trial.suggest_float("subsample",
-            kwargs['subsample'][0], kwargs['subsample'][1]),
-        "colsample_bytree": trial.suggest_float("colsample_bytree",
-            kwargs['colsample_bytree'][0], kwargs['colsample_bytree'][1]),
-        "gamma": trial.suggest_float("gamma",
-            kwargs['gamma'][0], kwargs['gamma'][1]),
-        "reg_lambda": trial.suggest_float("reg_lambda",
-            kwargs['reg_lambda'][0], kwargs['reg_lambda'][1]),
-        "alpha": trial.suggest_float("alpha",
-            kwargs['alpha'][0], kwargs['alpha'][1]),
-        "n_estimators": trial.suggest_int("n_estimators",
-            kwargs['n_estimators'][0], kwargs['n_estimators'][1]),
-    }    
-
-    extra_params = {
-        'random_state': kwargs['random_state'],         
-        'device': kwargs['device'],                 
-        'verbosity': kwargs['verbosity'],              
-        'objective': kwargs['objective'], 
-        'booster': kwargs['booster'],          
-        'tree_method': kwargs['tree_method'],        
-        'nthread': kwargs['nthread'],                  
-        'colsample_bylevel': kwargs['colsample_bylevel'],       
-        'colsample_bynode': kwargs['colsample_bynode'],        
-        'scale_pos_weight': kwargs['scale_pos_weight'],        
-        'base_score': kwargs['base_score'],            
-        'missing': kwargs['missing'],           
-        'importance_type': kwargs['importance_type'],    
-        'predictor': kwargs['predictor'],          
-        'enable_categorical': kwargs['enable_categorical']  
+        "learning_rate": trial.suggest_float("learning_rate", *kwargs['learning_rate']),
+        "max_depth": trial.suggest_int("max_depth", *kwargs['max_depth']),
+        "min_child_weight": trial.suggest_int("min_child_weight", *kwargs['min_child_weight']),
+        "subsample": trial.suggest_float("subsample", *kwargs['subsample']),
+        "colsample_bytree": trial.suggest_float("colsample_bytree", *kwargs['colsample_bytree']),
+        "gamma": trial.suggest_float("gamma", *kwargs['gamma']),
+        "reg_lambda": trial.suggest_float("reg_lambda", *kwargs['reg_lambda']),
+        "alpha": trial.suggest_float("alpha", *kwargs['alpha']),
+        "n_estimators": trial.suggest_int("n_estimators", *kwargs['n_estimators']),
     }
 
-    cv = KFold(n_splits=kwargs['n_splits'], 
-        shuffle=True, 
-        random_state=kwargs['random_state'])
+    extra_params = {
+        'random_state': seed,
+        'device': kwargs['device'],
+        'verbosity': kwargs['verbosity'],
+        'objective': kwargs['objective'],
+        'booster': kwargs['booster'],
+        'tree_method': kwargs['tree_method'],
+        'nthread': kwargs['nthread'],
+        'colsample_bylevel': kwargs['colsample_bylevel'],
+        'colsample_bynode': kwargs['colsample_bynode'],
+        'scale_pos_weight': kwargs['scale_pos_weight'],
+        'base_score': kwargs['base_score'],
+        'missing': kwargs['missing'],
+        'importance_type': kwargs['importance_type'],
+        'predictor': kwargs['predictor'],
+        'enable_categorical': kwargs['enable_categorical']
+    }
 
-    # Train model with CV
-    model = xgb.XGBRegressor(**params, **extra_params)
-    score = cross_val_score(model, X, y, cv=cv, scoring="neg_root_mean_squared_error")    
-    return np.mean(score)
+    # Conditionally create pipeline with SelectKBest
+    if kwargs.get("feature_selection", True):
+        num_features = trial.suggest_int("num_features", max(5, X.shape[1] // 10), X.shape[1])
+        score_func = lambda X_, y_: mutual_info_regression(X_, y_, random_state=seed)
+        selector = SelectKBest(score_func=score_func, k=num_features)
+        pipeline = make_pipeline(selector, xgb.XGBRegressor(**params, **extra_params))
+    else:
+        pipeline = make_pipeline(xgb.XGBRegressor(**params, **extra_params))
+        num_features = None
+
+    # Cross-validated scoring
+    cv = KFold(n_splits=kwargs['n_splits'], shuffle=True, random_state=seed)
+    scores = cross_val_score(
+        pipeline, X, y,
+        cv=cv,
+        scoring="neg_root_mean_squared_error"
+    )
+    score_mean = np.mean(scores)
+
+    # Optional: refit on full data to get final feature names
+    pipeline.fit(X, y)
+
+    if kwargs.get("feature_selection", True):
+        selector_step = pipeline.named_steps['selectkbest']
+        selected_indices = selector_step.get_support(indices=True)
+        selected_features = np.array(kwargs["feature_names"])[selected_indices].tolist()
+    else:
+        selected_features = kwargs['feature_names']
+
+    # Log to trial
+    trial.set_user_attr("model", pipeline)
+    trial.set_user_attr("score", score_mean)
+    trial.set_user_attr("selected_features", selected_features)
+
+    return score_mean
 
 def xgb_auto(X, y, **kwargs):
 
     """
     Autocalibration of XGBoost XGBRegressor hyper-parameters
-    Beta version
+    Preprocess with OneHotEncoder and StandardScaler
+    Pipeline for feature selector and regressor
 
     by
     Greg Pelletier
     gjpelletier@gmail.com
-    04-June-2025
+    18-June-2025
 
     REQUIRED INPUTS (X and y should have same number of rows and 
     only contain real numbers)
@@ -5332,24 +5466,35 @@ def xgb_auto(X, y, **kwargs):
     OPTIONAL KEYWORD ARGUMENTS
     **kwargs (optional keyword arguments):
         verbose= 'on' (default) or 'off'
-        standardize= True (default) or False where
-            True: standardize X using sklearn.preprocessing StandardScaler
-            False: do not standardize X (only used if X is already standardized)
+        preprocess= True,           # Apply OneHotEncoder and StandardScaler
+        preprocess_result= None,    # dict of the following result from 
+                                    # preprocess_train if available:         
+                                    # - encoder          (OneHotEncoder)
+                                    # - scaler           (StandardScaler)
+                                    # - categorical_cols (categorical cols)
+                                    # - non_numeric_cats (non-num cat cols)
+                                    # - continuous_cols  (continuous cols)
         gpu= True (default) or False to autodetect if the computer has a gpu and use it
-        n_trials= 50,                     # number of optuna trials
-        n_splits= 5,                      # number of splits for KFold CV
+        n_trials= 50,               # number of optuna trials
+        n_splits= 5,                # number of splits for KFold CV
+        pruning= False,             # prune poor optuna trials
+        feature_selection= True,    # optuna feature selection
+        threshold= 10,              # threshold for number of 
+                                    # unique values to identify
+                                    # categorical numeric features
+                                    # to encode with OneHotEncoder
 
         # [min, max] ranges of params for model to be optimized by optuna:
-        learning_rate= [0.01, 0.3],       # Step size shrinkage (also called eta).
-        max_depth= [3, 10],               # Maximum depth of a tree.
-        min_child_weight= [1, 10],        # Minimum sum of instance weight 
-                                          # (hessian) needed in a child.
-        subsample= [0.5, 1],              # Fraction of samples used for training each tree.
-        colsample_bytree= [0.5, 1],       # Fraction of features used for each tree.
-        gamma= [0, 10],                   # Minimum loss reduction to make a split.
-        reg_lambda= [0, 10],              # L2 regularization term on weights.
-        alpha= [0, 10],                   # L1 regularization term on weights.
-        n_estimators= [100, 1000]         # Number of boosting rounds (trees).
+        learning_rate= [0.01, 0.3], # Step size shrinkage (also called eta).
+        max_depth= [3, 10],         # Maximum depth of a tree.
+        min_child_weight= [1, 10],  # Minimum sum of instance weight 
+                                    # (hessian) needed in a child.
+        subsample= [0.5, 1],        # Fraction of samples used for training each tree.
+        colsample_bytree= [0.5, 1], # Fraction of features used for each tree.
+        gamma= [0, 10],             # Minimum loss reduction to make a split.
+        reg_lambda= [0, 10],        # L2 regularization term on weights.
+        alpha= [0, 10],             # L1 regularization term on weights.
+        n_estimators= [100, 1000]   # Number of boosting rounds (trees).
 
         # extra_params for model that are optional user-specified
         random_state= 42,           # Random seed for reproducibility.
@@ -5375,13 +5520,23 @@ def xgb_auto(X, y, **kwargs):
         fitted_model, model_outputs
             model_objects is the fitted model object
             model_outputs is a dictionary of the following outputs: 
-                - 'scaler': sklearn.preprocessing StandardScaler for X
-                - 'standardize': True scaler was used for X, False scaler not used
+                - 'preprocess': True for OneHotEncoder and StandardScaler
+                - 'preprocess_result': output or echo of the following:
+                    - 'encoder': OneHotEncoder for categorical X
+                    - 'scaler': StandardScaler for continuous X
+                    - 'categorical_cols': categorical numerical columns
+                    - 'non_numeric_cats': non-numeric categorical columns
+                    - 'continous_cols': continuous numerical columns                - 'optuna_study': optimzed optuna study object
                 - 'optuna_study': optimzed optuna study object
+                - 'optuna_model': optimzed optuna model object
+                - 'best_trial': best trial from the optuna study
+                - 'feature_selection' = option to select features (True, False)
+                - 'selected_features' = selected features
                 - 'best_params': best model hyper-parameters found by optuna
-                - 'y_pred': Predicted y values
-                - 'residuals': Residuals (y-y_pred) for each of the four methods
-                - 'stats': Regression statistics for each model
+                - 'extra_params': other model options used to fit the model
+                - 'stats': best model goodness of fit metrics for train data
+                - 'X_processed': pre-processed X with encoding and scaling
+                - 'y_pred': best model predicted y
 
     NOTE
     Do any necessary/optional cleaning of the data before 
@@ -5396,6 +5551,7 @@ def xgb_auto(X, y, **kwargs):
     """
 
     from EasyMLR import stats_given_y_pred, detect_dummy_variables, detect_gpu
+    from EasyMLR import preprocess_train, preprocess_test
     import time
     import pandas as pd
     import numpy as np
@@ -5417,10 +5573,22 @@ def xgb_auto(X, y, **kwargs):
     # Define default values of input data arguments
     defaults = {
         'n_trials': 50,                     # number of optuna trials
-        'standardize': True,
+        'preprocess': True,                 # Apply OneHotEncoder and StandardScaler
+        'preprocess_result': None,          # dict of  the following result from 
+                                            # preprocess_train if available:         
+                                            # - encoder          (OneHotEncoder) 
+                                            # - scaler           (StandardScaler)
+                                            # - categorical_cols (categorical columns)
+                                            # - non_numeric_cats (non-numeric cats)
+                                            # - continuous_cols  (continuous columns)
         'verbose': 'on',
         'gpu': True,                        # Autodetect to use gpu if present
-        'n_splits': 5,          # number of splits for KFold CV
+        'n_splits': 5,                      # number of splits for KFold CV
+        'pruning': False,                   # prune poor optuna trials
+        'feature_selection': True,          # optuna feature selection
+        'threshold': 10,                    # threshold for number of 
+                                            # unique values for 
+                                            # categorical numeric features
 
         # params that are optimized by optuna
         'learning_rate': [0.01, 0.3],       # Step size shrinkage (also called eta).
@@ -5431,10 +5599,10 @@ def xgb_auto(X, y, **kwargs):
         'gamma': [0, 10],                   # Minimum loss reduction to make a split.
         'reg_lambda': [0, 10],              # L2 regularization term on weights.
         'alpha': [0, 10],                   # L1 regularization term on weights.
-        'n_estimators': [100, 1000],         # Number of boosting rounds (trees).
+        'n_estimators': [100, 1000],        # Number of boosting rounds (trees).
 
         # extra_params that are optional user-specified
-        'random_state': 42,                 # Random seed for reproducibility.
+        'random_state': 42,           # Random seed for reproducibility.
         'verbosity': 1,               # Verbosity of output (0 = silent, 1 = warnings, 2 = info).
         'objective': "reg:squarederror",  # Loss function for regression.
         'booster': "gbtree",          # Type of booster ('gbtree', 'gblinear', or 'dart').
@@ -5463,6 +5631,10 @@ def xgb_auto(X, y, **kwargs):
     else:
         data['device'] = 'cpu'
 
+    # copy X and y to avoid altering the originals
+    X = X.copy()
+    y = y.copy()
+    
     from EasyMLR import check_X_y
     X, y = check_X_y(X,y)
 
@@ -5482,23 +5654,18 @@ def xgb_auto(X, y, **kwargs):
     model_objects = {}
     model_outputs = {}
 
-    # Standardized X (X_scaled)
-    scaler = StandardScaler().fit(X)
-    X_scaled = scaler.transform(X)
-    # Convert scaled arrays into pandas dataframes with same column names as X
-    X_scaled = pd.DataFrame(X_scaled, columns=X.columns)
-    # Copy index from unscaled to scaled dataframes
-    X_scaled.index = X.index
-    # model_outputs['X_scaled'] = X_scaled                 # standardized X
-    model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
+    # Pre-process X to apply OneHotEncoder and StandardScaler
+    if data['preprocess']:
+        if data['preprocess_result']!=None:
+            X = preprocess_test(X, data['preprocess_result'])
+        else:
+            data['preprocess_result'] = preprocess_train(
+                X, threshold=data['threshold'])
+            X = data['preprocess_result']['df_processed']
 
-    # Specify X to be used for fitting the models 
-    if data['standardize']:
-        X = X_scaled.copy()
-    else:
-        X = X.copy()
-
+    data['feature_names'] = X.columns
+    # print('after preprocess_train: ',X.shape, y.shape,X.columns)
+    
     extra_params = {
         'random_state': data['random_state'],         
         'device': data['device'],                 
@@ -5520,21 +5687,49 @@ def xgb_auto(X, y, **kwargs):
     print('Running optuna to find best parameters, could take a few minutes, please wait...')
     optuna.logging.set_verbosity(optuna.logging.ERROR)
 
-    # study = optuna.create_study(direction="maximize")
-    study = optuna.create_study(
-        direction="maximize", sampler=optuna.samplers.TPESampler(seed=data['random_state']))
+    # # study = optuna.create_study(direction="maximize")
+    # study = optuna.create_study(
+    #     direction="maximize", sampler=optuna.samplers.TPESampler(seed=data['random_state']))
 
-    study.optimize(lambda trial: xgb_objective(trial, X, y, **data), n_trials=data['n_trials'])
+    # optional pruning
+    if data['pruning']:
+        study = optuna.create_study(
+            direction="maximize", 
+            sampler=optuna.samplers.TPESampler(seed=data['random_state'], multivariate=True),
+            pruner=optuna.pruners.MedianPruner())
+    else:
+        study = optuna.create_study(
+            direction="maximize", 
+            sampler=optuna.samplers.TPESampler(seed=data['random_state'], multivariate=True))
+    
+    X_opt = X.copy()    # copy X to prevent altering the original
+    study.optimize(lambda trial: xgb_objective(trial, X_opt, y, **data), n_trials=data['n_trials'])
+
+    # save outputs
+    model_outputs['preprocess'] = data['preprocess']   
+    model_outputs['preprocess_result'] = data['preprocess_result'] 
+    model_outputs['X_processed'] = X.copy()
+    model_outputs['pruning'] = data['pruning']
+    model_outputs['optuna_study'] = study
+    model_outputs['optuna_model'] = study.best_trial.user_attrs.get('model')
+    model_outputs['selected_features'] = study.best_trial.user_attrs.get('selected_features')
+    model_outputs['accuracy'] = study.best_trial.user_attrs.get('accuracy')
+    model_outputs['best_trial'] = study.best_trial
+        
     best_params = study.best_params
     model_outputs['best_params'] = best_params
-    model_outputs['optuna_study'] = study
+    model_outputs['extra_params'] = extra_params
+
+    # user attributes for optuna
 
     print('Fitting XGBRegressor model with best parameters, please wait ...')
-    fitted_model = XGBRegressor(**best_params, **extra_params).fit(X,y)
+    fitted_model = XGBRegressor(
+        **best_params, **extra_params).fit(
+        X[model_outputs['selected_features']],y)
        
     # check to see of the model has intercept and coefficients
     if (hasattr(fitted_model, 'intercept_') and hasattr(fitted_model, 'coef_') 
-            and fitted_model.coef_.size==len(X.columns)):
+            and fitted_model.coef_.size==len(X[model_outputs['selected_features']].columns)):
         intercept = fitted_model.intercept_
         coefficients = fitted_model.coef_
         # dataframe of model parameters, intercept and coefficients, including zero coefs
@@ -5545,7 +5740,7 @@ def xgb_auto(X, y, **kwargs):
                 popt[0][i] = 'Intercept'
                 popt[1][i] = model.intercept_
             else:
-                popt[0][i] = X.columns[i-1]
+                popt[0][i] = X[model_outputs['selected_features']].columns[i-1]
                 popt[1][i] = model.coef_[i-1]
         popt = pd.DataFrame(popt).T
         popt.columns = ['Feature', 'Parameter']
@@ -5558,15 +5753,12 @@ def xgb_auto(X, y, **kwargs):
         model_outputs['popt_table'] = popt_table
     
     # Calculate regression statistics
-    y_pred = fitted_model.predict(X)
-    stats = stats_given_y_pred(X,y,y_pred)
+    y_pred = fitted_model.predict(X[model_outputs['selected_features']])
+    stats = stats_given_y_pred(X[model_outputs['selected_features']],y,y_pred)
     
-    # model objects and outputs returned by stacking
-    model_outputs['scaler'] = scaler                     # scaler used to standardize X
-    model_outputs['standardize'] = data['standardize']   # True: X_scaled was used to fit, False: X was used
+    # save outputs
     model_outputs['y_pred'] = stats['y_pred']
     model_outputs['residuals'] = stats['residuals']
-    # model_objects = model
     
     # residual plot for training error
     if data['verbose'] == 'on':
@@ -8244,7 +8436,7 @@ def logistic(X, y, **kwargs):
     column names for for each column if it is a dataframe
 
     EXAMPLE 
-    model_objects, model_outputs = logistic_auto(X, y)
+    model_objects, model_outputs = logistic(X, y)
 
     """
 
@@ -8252,6 +8444,7 @@ def logistic(X, y, **kwargs):
     from EasyMLR import extract_logistic_metrics, pseudo_r2
     from EasyMLR import plot_confusion_matrix, plot_roc_auc
     from EasyMLR import detect_gpu 
+    from EasyMLR import check_X_y
     import time
     import pandas as pd
     import numpy as np
@@ -8316,7 +8509,10 @@ def logistic(X, y, **kwargs):
     else:
         data['device'] = 'cpu'
 
-    from EasyMLR import check_X_y
+    # copy X and y to prevent altering original
+    X = X.copy()
+    y = y.copy()
+
     # print('before preprocess_train: ',X.shape, y.shape)
     X, y = check_X_y(X,y)
     # print('after check_X_y: ',X.shape, y.shape,X.columns)
@@ -8342,18 +8538,18 @@ def logistic(X, y, **kwargs):
             data['preprocess_result'] = preprocess_train(
                 X, threshold=data['threshold'])
             X = data['preprocess_result']['df_processed']
-                                            
-    if data['selected_features'] == None:
-        data['selected_features'] = X.columns
-    else:
-        X = X[data['selected_features']]
-    
+
     # save preprocess outputs
     model_outputs['preprocess'] = data['preprocess']   
     model_outputs['preprocess_result'] = data['preprocess_result'] 
     model_outputs['selected_features'] = data['selected_features']
     model_outputs['X_processed'] = X.copy()
-    
+                                            
+    if data['selected_features'] == None:
+        data['selected_features'] = X.columns
+    else:
+        X = X[data['selected_features']]
+        
     print('Fitting LogisticRegression model with best parameters, please wait ...')
 
     params = {
@@ -8514,26 +8710,27 @@ def logistic_auto(X, y, **kwargs):
                                   # - categorical_cols (categorical cols)
                                   # - non_numeric_cats (non-num cat cols)
                                   # - continuous_cols  (continuous cols)
-        verbose= 'on',      # display summary stats and plots
-        gpu= True,          # autodetect gpu if present
-        n_splits= 5,        # number of splits for KFold CV
-        pruning= False,     # prune poor optuna trials
-        threshold= 10,      # threshold for number of 
-                            # unique values to identify
-                            # categorical numeric features
-                            # to encode with OneHotEncoder
+        verbose= 'on',            # display summary stats and plots
+        gpu= True,                # autodetect gpu if present
+        n_splits= 5,              # number of splits for KFold CV
+        pruning= False,           # prune poor optuna trials
+        feature_selection= True,  # optuna feature selection
+        threshold= 10,            # threshold for number of 
+                                  # unique values to identify
+                                  # categorical numeric features
+                                  # to encode with OneHotEncoder
          
         # [min,max] model params that are optimized by optuna
-        C= [1e-4, 10.0],    # Inverse regularization strength
+        C= [1e-4, 10.0],          # Inverse regularization strength
 
         # categorical model params that are optimized by optuna
         solver= ['liblinear', 'lbfgs', 'saga'],   # optimization algorithm
         penalty= ['l1', 'l2],                     # norm of the penalty
         
         # model extra_params that are optional user-specified
-        random_state= 42,   # random seed for reproducibility
-        max_iter= 500,      # max iterations for solver
-        n_jobs= -1,         # number of jobs to run in parallel    
+        random_state= 42,         # random seed for reproducibility
+        max_iter= 500,            # max iterations for solver
+        n_jobs= -1,               # number of jobs to run in parallel    
 
     Note: StandardScaler standardizing of continuous numerical features 
     and OneHoteEncoder encoding of categorical numerical features is optional
