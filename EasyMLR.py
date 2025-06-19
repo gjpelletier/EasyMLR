@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.105"
+__version__ = "1.1.106"
 
 def check_X_y(X,y):
 
@@ -8486,7 +8486,7 @@ def test_logistic_model(
         X[selected_features], y)
     stats = pd.DataFrame([metrics]).T
     stats.index.name = 'Statistic'
-    stats.columns = ['Regressor']
+    stats.columns = ['LogisticRegression']
     results = {}
     results['metrics'] = metrics
     results['stats'] = stats
