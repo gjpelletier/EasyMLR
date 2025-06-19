@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.103"
+__version__ = "1.1.104"
 
 def check_X_y(X,y):
 
@@ -4208,6 +4208,7 @@ def svr_auto(X, y, **kwargs):
     study = optuna.create_study(
         direction="maximize", sampler=optuna.samplers.TPESampler(seed=data['random_state']))
 
+    from EasyMLR import svr_objective
     study.optimize(lambda trial: svr_objective(trial, X, y, **data), n_trials=data['n_trials'])
     best_params = study.best_params
     model_outputs['best_params'] = best_params
@@ -5141,6 +5142,8 @@ def gbr_auto(X, y, **kwargs):
     study = optuna.create_study(
         direction="maximize", 
         sampler=optuna.samplers.TPESampler(seed=data['random_state']))
+
+    from EasyMLR import gbr_objective
     study.optimize(lambda trial: gbr_objective(trial, X, y, **data), 
         n_trials=data['n_trials'], n_jobs=data['n_jobs'])
  
@@ -5910,6 +5913,7 @@ def xgb_auto(X, y, **kwargs):
             sampler=optuna.samplers.TPESampler(seed=data['random_state'], multivariate=True))
     
     X_opt = X.copy()    # copy X to prevent altering the original
+
     from EasyMLR import xgb_objective
     study.optimize(lambda trial: xgb_objective(trial, X_opt, y, **data), n_trials=data['n_trials'])
 
@@ -6823,6 +6827,7 @@ def catboost_auto(X, y, **kwargs):
     study = optuna.create_study(
         direction="maximize", sampler=optuna.samplers.TPESampler(seed=data['random_state']))
 
+    from EasyMLR import catboost_objective
     study.optimize(lambda trial: catboost_objective(trial, X, y, **data), n_trials=data['n_trials'])
     best_params = study.best_params
     model_outputs['best_params'] = best_params
@@ -7494,6 +7499,7 @@ def forest_auto(X, y, **kwargs):
     study = optuna.create_study(
         direction="maximize", sampler=optuna.samplers.TPESampler(seed=data['random_state']))
 
+    from EasyMLR import forest_objective
     study.optimize(lambda trial: forest_objective(trial, X, y, **data), n_trials=data['n_trials'])
     best_params = study.best_params
     model_outputs['best_params'] = best_params
@@ -8212,6 +8218,8 @@ def knn_auto(X, y, **kwargs):
             sampler=optuna.samplers.TPESampler(seed=data['random_state'], multivariate=True))
     
     X_opt = X.copy()
+
+    from EasyMLR import knn_objective
     study.optimize(
         lambda trial: knn_objective(trial, X_opt, y, **data), 
         n_trials=data['n_trials'])
@@ -8442,7 +8450,7 @@ def plot_roc_auc(model, X, y):
 
     return hfig
 
-def plot_logistic_results_test(
+def test_logistic_model(
         model, X, y, preprocess_result=None, selected_features=None):
     '''
     plot the confusion matrix and ROC curve and fitness metrics
@@ -9035,6 +9043,8 @@ def logistic_auto(X, y, **kwargs):
             sampler=optuna.samplers.TPESampler(seed=data['random_state'], multivariate=True))
     
     X_opt = X.copy()    # copy X to prevent altering the original
+
+    from EasyMLR import logistic_objective
     study.optimize(
         lambda trial: logistic_objective(trial, X_opt, y, **data), 
         n_trials=data['n_trials'])
