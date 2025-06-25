@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.109"
+__version__ = "1.1.110"
 
 def check_X_y(X,y):
 
@@ -845,6 +845,7 @@ def stepwise(X, y, **kwargs):
             'on': drop predictors with p-values below threshold p-value (default) 
             'off': keep all predictors regardless of p-value
         p_threshold= threshold p-value to eliminate predictors (default 0.05)                
+        allow_dummies= True or False (default)                
 
     RETURNS
         model_object, model_output 
@@ -907,6 +908,7 @@ def stepwise(X, y, **kwargs):
         'verbose': 'on',
         'direction': 'forward',
         'standardize': False,
+        'allow_dummies': False,
         'drop_insig': 'on',
         'p_threshold': 0.05
         }
@@ -929,7 +931,7 @@ def stepwise(X, y, **kwargs):
     
     # check for input errors
     ctrl = detect_dummy_variables(X)
-    if ctrl:
+    if ctrl and not data['allow_dummies']:
         print('Check X: Stewpise can not handle dummies. Try using lasso if X has dummies.','\n')
         sys.exit()
 
