@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "1.1.110"
+__version__ = "1.1.111"
 
 def check_X_y(X,y):
 
@@ -932,7 +932,7 @@ def stepwise(X, y, **kwargs):
     # check for input errors
     ctrl = detect_dummy_variables(X)
     if ctrl and not data['allow_dummies']:
-        print('Check X: Stewpise can not handle dummies. Try using lasso if X has dummies.','\n')
+        print('Check X: X appears to have dummy variables. Use allow_dummies=True, or use Lasso, Ridge, or ElasticNet','\n')
         sys.exit()
 
     from EasyMLR import check_X_y
